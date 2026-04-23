@@ -19,11 +19,7 @@ namespace SpaceBattle.Lib
                 throw new ArgumentException();
             }
 
-            var result = new int[a._coordinates.Length];
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i] = a._coordinates[i] + b._coordinates[i];
-            }
+            var result = a._coordinates.Zip(b._coordinates, (x, y) => x + y).ToArray();
 
             return new Vector(result);
         }
@@ -37,23 +33,14 @@ namespace SpaceBattle.Lib
             return false;
         }
 
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = 17;
-                foreach (var coordinate in _coordinates)
-                {
-                    hash = hash * 31 + coordinate.GetHashCode();
-                }
-                return hash;
-            }
-        }
+        public override int GetHashCode() =>
+            _coordinates.Aggregate(17, (hash, coordinate) => unchecked(hash * 31 + coordinate.GetHashCode()));
 
         public static bool operator ==(Vector a, Vector b)
         {
-            if (ReferenceEquals(a, null) && ReferenceEquals(b, null)) return true;
-            if (ReferenceEquals(a, null) || ReferenceEquals(b, null)) return false;
+            if (ReferenceEquals(a, b)) return true;
+
+            if (ReferenceEquals(a, null)) return false;
 
             return a.Equals(b);
         }
