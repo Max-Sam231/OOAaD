@@ -63,5 +63,25 @@ namespace SpaceBattle.Lib.Tests
 
             Assert.Throws<InvalidOperationException>(() => moveCommand.Execute());
         }
+
+        [Fact]
+        public void Constructor_ShouldThrowArgumentNullException_WhenMovableIsNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => new MoveCommand(null!));
+        }
+
+        [Fact]
+        public void Execute_ShouldWrapGenericException_IntoInvalidOperationException()
+        {
+            var movable = Substitute.For<IMovable>();
+            movable.Position.Returns(new Vector(0, 0));
+            movable.Velocity.Returns(new Vector(1, 1));
+            movable.When(x => x.Position = Arg.Any<Vector>()).Do(x => throw new Exception());
+
+            var moveCommand = new MoveCommand(movable);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => moveCommand.Execute());
+            Assert.IsType<Exception>(ex.InnerException);
+        }
     }
 }
