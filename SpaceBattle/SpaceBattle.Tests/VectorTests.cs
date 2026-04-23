@@ -143,5 +143,32 @@ namespace SpaceBattle.Tests
 
             Assert.True(v1 != v2);
         }
+
+        [Fact]
+        public void Equals_BothNull_ReturnsFalse()
+        {
+            Vector? v1 = null!;
+            Vector? v2 = null!;
+
+            Assert.True(Vector.Equals(v1, v2));
+        }
+
+        [Fact]
+        public void Equals_FirstNull_ReturnsFalse()
+        {
+            Vector? v1 = null!;
+            var v2 = new Vector(1, 2, 3);
+
+            Assert.False(Vector.Equals(v1, v2));
+        }
+
+        [Fact]
+        public void Equals_SecondNull_ReturnsFalse()
+        {
+            var v1 = new Vector(1, 2, 3);
+            Vector? v2 = null!;
+
+            Assert.False(Vector.Equals(v1, v2));
+        }
     }
 }
