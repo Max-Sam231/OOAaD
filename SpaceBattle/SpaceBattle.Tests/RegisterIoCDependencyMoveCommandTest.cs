@@ -23,17 +23,17 @@ namespace SpaceBattle.Lib.Test
             var mockMovable = Substitute.For<IMovable>();
 
             ((dynamic)Ioc.Resolve<object>(
-                "IoC.Register", 
-                "Adapters.IMovable", 
+                "IoC.Register",
+                "Adapters.IMovable",
                 (Func<object[], object>)(args => mockMovable)
             )).Execute();
 
             var registerCommand = new RegisterIoCDependencyMoveCommand();
 
-            registerCommand.Execute(); 
+            registerCommand.Execute();
 
             var command = Ioc.Resolve<SpaceBattle.Lib.ICommand>("Commands.Move", new object());
-            
+
             Assert.NotNull(command);
             Assert.IsType<MoveCommand>(command);
         }
@@ -46,13 +46,13 @@ namespace SpaceBattle.Lib.Test
             mockMovable.Velocity.Returns(new Vector(5, 5));
 
             ((dynamic)Ioc.Resolve<object>(
-                "IoC.Register", 
-                "Adapters.IMovable", 
+                "IoC.Register",
+                "Adapters.IMovable",
                 (Func<object[], object>)(args => mockMovable)
             )).Execute();
-            
+
             new RegisterIoCDependencyMoveCommand().Execute();
-            
+
             var moveCmd = Ioc.Resolve<SpaceBattle.Lib.ICommand>("Commands.Move", new object());
 
             moveCmd.Execute();
