@@ -88,7 +88,7 @@ namespace SpaceBattle.Tests
             int[]? nullArray = null;
             var v = new Vector(nullArray!);
             var expected = new Vector();
-            
+
             Assert.Equal(expected, v);
         }
 
@@ -96,7 +96,7 @@ namespace SpaceBattle.Tests
         public void Equals_NullObject_ReturnsFalse()
         {
             var v1 = new Vector(1, 2, 3);
-            
+
             Assert.False(v1.Equals(null!));
         }
 
@@ -104,7 +104,7 @@ namespace SpaceBattle.Tests
         public void Equals_DifferentTypeObject_ReturnsFalse()
         {
             var v1 = new Vector(1, 2, 3);
-            
+
             Assert.False(v1.Equals("Строка"));
         }
 
