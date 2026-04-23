@@ -7,6 +7,9 @@ on:
 jobs:
   build-test-coverage:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SpaceBattle
     permissions:
       pull-requests: write
       contents: read
