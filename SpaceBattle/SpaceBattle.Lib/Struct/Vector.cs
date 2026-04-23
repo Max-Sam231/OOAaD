@@ -36,14 +36,8 @@ namespace SpaceBattle.Lib
         public override int GetHashCode() =>
             _coordinates.Aggregate(17, (hash, coordinate) => unchecked(hash * 31 + coordinate.GetHashCode()));
 
-        public static bool operator ==(Vector a, Vector b)
-        {
-            if (ReferenceEquals(a, b)) return true;
-
-            if (ReferenceEquals(a, null)) return false;
-
-            return a.Equals(b);
-        }
+        public static bool operator ==(Vector a, Vector b) =>
+            a is null ? b is null : a.Equals(b);
 
         public static bool operator !=(Vector a, Vector b)
         {
