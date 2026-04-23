@@ -81,5 +81,67 @@ namespace SpaceBattle.Tests
 
             Assert.NotEqual(0, hashCode);
         }
+
+        [Fact]
+        public void Constructor_NullArray_CreatesEmptyVector()
+        {
+            int[]? nullArray = null;
+            var v = new Vector(nullArray!);
+            var expected = new Vector();
+            
+            Assert.Equal(expected, v);
+        }
+
+        [Fact]
+        public void Equals_NullObject_ReturnsFalse()
+        {
+            var v1 = new Vector(1, 2, 3);
+            
+            Assert.False(v1.Equals(null!));
+        }
+
+        [Fact]
+        public void Equals_DifferentTypeObject_ReturnsFalse()
+        {
+            var v1 = new Vector(1, 2, 3);
+            
+            Assert.False(v1.Equals("Строка"));
+        }
+
+        [Fact]
+        public void OperatorEquals_BothNull_ReturnsTrue()
+        {
+            Vector? v1 = null!;
+            Vector? v2 = null!;
+
+            Assert.True(v1 == v2);
+        }
+
+        [Fact]
+        public void OperatorEquals_FirstNull_ReturnsFalse()
+        {
+            Vector? v1 = null!;
+            var v2 = new Vector(1, 2, 3);
+
+            Assert.False(v1 == v2);
+        }
+
+        [Fact]
+        public void OperatorEquals_SecondNull_ReturnsFalse()
+        {
+            var v1 = new Vector(1, 2, 3);
+            Vector? v2 = null!;
+
+            Assert.False(v1 == v2);
+        }
+
+        [Fact]
+        public void OperatorNotEquals_OneNull_ReturnsTrue()
+        {
+            var v1 = new Vector(1, 2, 3);
+            Vector? v2 = null!;
+
+            Assert.True(v1 != v2);
+        }
     }
 }
