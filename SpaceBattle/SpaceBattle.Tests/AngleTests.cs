@@ -109,5 +109,15 @@ namespace SpaceBattle.Tests
 
             Assert.Equal("(3, 8)", result);
         }
+        [Fact]
+        public void EqualsObject_EquivalentAngleBoxed_ReturnsTrue()
+        {
+            var angle1 = new Angle(15, 8);
+            object angle2Boxed = new Angle(15, 8);
+
+            var result = angle1.Equals(angle2Boxed);
+
+            Assert.True(result);
+        }
     }
 }
