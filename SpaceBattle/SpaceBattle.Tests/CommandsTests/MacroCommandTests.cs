@@ -44,6 +44,7 @@ namespace SpaceBattle.Lib.Tests.CommandsTests
             Assert.Throws<ArgumentNullException>(() => new MacroCommand(null!));
         }
 
+        [Fact]
         public void Execute_DoesNothing_WhenCommandArrayIsEmpty()
         {
             var macro = new MacroCommand(Array.Empty<ICommand>());
