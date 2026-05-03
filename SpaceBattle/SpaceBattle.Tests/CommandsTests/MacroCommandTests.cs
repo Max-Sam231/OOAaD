@@ -37,5 +37,18 @@ namespace SpaceBattle.Lib.Tests.CommandsTests
             command2.Received(1).Execute();
             command3.DidNotReceive().Execute();
         }
+
+        [Fact]
+        public void Constructor_ThrowsArgumentNullException_WhenCommandsAreNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => new MacroCommand(null!));
+        }
+
+        public void Execute_DoesNothing_WhenCommandArrayIsEmpty()
+        {
+            var macro = new MacroCommand(Array.Empty<ICommand>());
+
+            macro.Execute();
+        }
     }
 }
