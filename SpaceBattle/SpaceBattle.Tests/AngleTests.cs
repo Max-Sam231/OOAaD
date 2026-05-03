@@ -74,5 +74,40 @@ namespace SpaceBattle.Tests
             Assert.Equal(1.0, cosValue, 5);
             Assert.Equal(0.0, sinValue, 5);
         }
+        [Fact]
+        public void Constructor_ZeroOrNegativeDenominator_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => new Angle(5, 0));
+            Assert.Throws<ArgumentException>(() => new Angle(5, -8));
+        }
+
+        [Fact]
+        public void Constructor_NegativeNumerator_NormalizesCorrectly()
+        {
+            var angle = new Angle(-3, 8);
+
+            Assert.Equal(5, angle.Numerator);
+        }
+
+        [Fact]
+        public void EqualsObject_NullOrDifferentType_ReturnsFalse()
+        {
+            var angle = new Angle(1, 8);
+            object? nullObj = null;
+            object stringObj = "";
+
+            Assert.False(angle.Equals(nullObj));
+            Assert.False(angle.Equals(stringObj));
+        }
+
+        [Fact]
+        public void ToString_ReturnsCorrectlyFormattedString()
+        {
+            var angle = new Angle(3, 8);
+
+            var result = angle.ToString();
+
+            Assert.Equal("(3, 8)", result);
+        }
     }
 }
