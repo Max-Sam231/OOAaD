@@ -13,7 +13,7 @@ namespace SpaceBattle.Lib
             ExecuteStep(0);
         }
 
-        public void ExecuteStep(int index)
+        private void ExecuteStep(int index)
         {
             if (index >= _commands.Length) return;
 
