@@ -12,8 +12,8 @@ namespace SpaceBattle.Lib.Tests.CommandsTests
             var command1 = Substitute.For<ICommand>();
             var command2 = Substitute.For<ICommand>();
 
-            var macro = new MacroCommand(new[] {command1, command2});
-        
+            var macro = new MacroCommand(new[] { command1, command2 });
+
             macro.Execute();
 
             command1.Received(1).Execute();
@@ -27,9 +27,9 @@ namespace SpaceBattle.Lib.Tests.CommandsTests
             var command2 = Substitute.For<ICommand>();
             var command3 = Substitute.For<ICommand>();
 
-            command2.When(x => x.Execute()).Do(x => {throw new Exception("Error"); });
+            command2.When(x => x.Execute()).Do(x => { throw new Exception("Error"); });
 
-            var macro = new MacroCommand(new[] {command1, command2, command3});
+            var macro = new MacroCommand(new[] { command1, command2, command3 });
 
             Assert.Throws<Exception>(() => macro.Execute());
 
