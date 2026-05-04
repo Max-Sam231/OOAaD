@@ -1,0 +1,44 @@
+name: Rebase all open PRs on main merge
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  rebase-others:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebase other open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "Checking for open PRs targetting 'main'..."
+          
+          PR_LIST=$(gh pr list --base main --state open --json number --jq '.[].number')
+
+          if [ -z "$PR_LIST" ]; then
+            echo "No open PRs found to update."
+            exit 0
+          fi
+
+          echo "Found PRs to update: $PR_LIST"
+
+          for pr in $PR_LIST; do
+            echo "------------------------------------------"
+            echo "Processing PR #$pr..."
+            
+            gh pr update-branch $pr --rebase --repo ${{ github.repository }} || echo "Could not rebase PR #$pr (possibly due to merge conflicts or protection rules)"
+          done
