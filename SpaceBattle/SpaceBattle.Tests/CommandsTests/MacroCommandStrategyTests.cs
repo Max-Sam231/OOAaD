@@ -26,7 +26,7 @@ namespace SpaceBattle.Tests
         {
             string specName = "TestMoveWithFuel";
             var strategy = new CreateMacroCommandStrategy(specName);
-            
+
             var mockTarget = Substitute.For<IDictionary<string, object>>();
             object[] args = { mockTarget };
 
@@ -34,17 +34,18 @@ namespace SpaceBattle.Tests
             var mockCmd2 = Substitute.For<ICommand>();
             var mockMacroCommand = Substitute.For<ICommand>();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", $"Specs.{specName}", 
+            Ioc.Resolve<App.ICommand>("IoC.Register", $"Specs.{specName}",
                 (object[] a) => new List<string> { "Command.Test1", "Command.Test2" }).Execute();
-            
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Test1", 
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Test1",
                 (object[] a) => mockCmd1).Execute();
-                
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Test2", 
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Test2",
                 (object[] a) => mockCmd2).Execute();
-                
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro", 
-                (object[] a) => {
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro",
+                (object[] a) =>
+                {
                     var commands = (IEnumerable<ICommand>)a[0];
                     var macro = new MacroCommand(commands.ToArray());
                     return macro;
@@ -54,7 +55,7 @@ namespace SpaceBattle.Tests
 
             Assert.NotNull(result);
             Assert.IsType<MacroCommand>(result);
-            
+
             result.Execute();
             mockCmd1.Received(1).Execute();
             mockCmd2.Received(1).Execute();
