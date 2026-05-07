@@ -1,8 +1,7 @@
-using System;
 using SpaceBattle.Lib;
 using NSubstitute;
 
-namespace SpaceBattle.Lib.Tests.CommandsTests
+namespace SpaceBattle.Tests.CommandsTests
 {
     public class MacroCommandTests
     {
