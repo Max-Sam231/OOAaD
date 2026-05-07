@@ -29,7 +29,7 @@ namespace SpaceBattle.Tests
             var mockCmd2 = Substitute.For<ICommand>();
             var commands = new ICommand[] { mockCmd1, mockCmd2 };
 
-            var macroCommand = Ioc.Resolve<ICommand>("Command.Macro", new object[] { commands });
+            var macroCommand = Ioc.Resolve<ICommand>("Commands.Macro", new object[] { commands });
 
             Assert.NotNull(macroCommand);
             Assert.IsType<MacroCommand>(macroCommand);
