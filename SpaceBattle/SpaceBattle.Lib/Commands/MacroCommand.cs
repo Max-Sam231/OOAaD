@@ -10,10 +10,7 @@ namespace SpaceBattle.Lib
 
         public void Execute()
         {
-            foreach (var command in _commands)
-            {
-                command.Execute();
-            }
+            _commands.ToList().ForEach(n => n.Execute());
         }
     }
 }
