@@ -34,7 +34,7 @@ namespace SpaceBattle.Test
 
             registerCommand.Execute();
 
-            var command = Ioc.Resolve<ICommand>("Commands.Move", new object[] {});
+            var command = Ioc.Resolve<ICommand>("Commands.Move", new object[] { });
 
             Assert.NotNull(command);
             Assert.IsType<MoveCommand>(command);
@@ -55,7 +55,7 @@ namespace SpaceBattle.Test
 
             new RegisterIoCDependencyMoveCommand().Execute();
 
-            var moveCmd = Ioc.Resolve<ICommand>("Commands.Move", new object[] {});
+            var moveCmd = Ioc.Resolve<ICommand>("Commands.Move", new object[] { });
 
             moveCmd.Execute();
 
