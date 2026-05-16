@@ -6,14 +6,16 @@ namespace SpaceBattle.Lib
     {
         public void Execute()
         {
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Macro.Move", 
-                (object[] args) => {
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Macro.Move",
+                (object[] args) =>
+                {
                     var strategy = new CreateMacroCommandStrategy("Move");
                     return strategy.Resolve(args);
                 }).Execute();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Macro.Rotate", 
-                (object[] args) => {
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Macro.Rotate",
+                (object[] args) =>
+                {
                     var strategy = new CreateMacroCommandStrategy("Rotate");
                     return strategy.Resolve(args);
                 }).Execute();

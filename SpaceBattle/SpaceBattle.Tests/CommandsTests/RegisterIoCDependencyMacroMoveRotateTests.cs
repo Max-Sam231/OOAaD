@@ -31,17 +31,18 @@ namespace SpaceBattle.Tests
             var mockCmd2 = Substitute.For<ICommand>();
             var mockMacroCommand = Substitute.For<ICommand>();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Specs.Move", 
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Specs.Move",
                 (object[] a) => new List<string> { "Command.Move1", "Command.Move2" }).Execute();
-            
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Move1", 
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Move1",
                 (object[] a) => mockCmd1).Execute();
-                
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Move2", 
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Move2",
                 (object[] a) => mockCmd2).Execute();
-                
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro", 
-                (object[] a) => {
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro",
+                (object[] a) =>
+                {
                     var commands = (IEnumerable<ICommand>)a[0];
                     var macro = new MacroCommand(commands.ToArray());
                     return macro;
@@ -63,17 +64,18 @@ namespace SpaceBattle.Tests
             var mockCmd2 = Substitute.For<ICommand>();
             var mockMacroCommand = Substitute.For<ICommand>();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Specs.Rotate", 
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Specs.Rotate",
                 (object[] a) => new List<string> { "Command.Rotate1", "Command.Rotate2" }).Execute();
-            
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Rotate1", 
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Rotate1",
                 (object[] a) => mockCmd1).Execute();
-                
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Rotate2", 
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Rotate2",
                 (object[] a) => mockCmd2).Execute();
-                
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro", 
-                (object[] a) => {
+
+            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro",
+                (object[] a) =>
+                {
                     var commands = (IEnumerable<ICommand>)a[0];
                     var macro = new MacroCommand(commands.ToArray());
                     return macro;
@@ -91,7 +93,7 @@ namespace SpaceBattle.Tests
             var registerCmd = new RegisterIoCDependencyMacroMoveRotate();
 
             var exception = Record.Exception(() => registerCmd.Execute());
-            
+
             Assert.Null(exception);
         }
     }
