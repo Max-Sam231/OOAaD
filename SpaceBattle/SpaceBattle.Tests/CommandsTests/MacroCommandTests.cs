@@ -1,5 +1,6 @@
 using SpaceBattle.Lib;
 using NSubstitute;
+using App;
 
 namespace SpaceBattle.Tests.CommandsTests
 {

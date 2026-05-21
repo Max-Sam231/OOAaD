@@ -6,7 +6,7 @@ namespace SpaceBattle.Lib
     {
         public void Execute()
         {
-            var cmd = Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Send", (object[] args) =>
+            var cmd = Ioc.Resolve<ICommand>("IoC.Register", "Commands.Send", (object[] args) =>
             {
                 var send = Ioc.Resolve<ICommand>("Adapters.ICommand", args);
                 var receiver = Ioc.Resolve<ICommandReceiver>("Adapters.ICommandReceiver", args);

@@ -1,6 +1,5 @@
 using App;
 using SpaceBattle.Lib;
-using ICommandApp = App.ICommand;
 
 namespace SpaceBattle.Lib
 {   
@@ -8,7 +7,7 @@ namespace SpaceBattle.Lib
     {
         public void Execute()
         {
-            Ioc.Resolve<ICommandApp>(
+            Ioc.Resolve<ICommand>(
                 "IoC.Register",
                 "Commands.Rotate",
                 (Func<object[], object>)(args =>
