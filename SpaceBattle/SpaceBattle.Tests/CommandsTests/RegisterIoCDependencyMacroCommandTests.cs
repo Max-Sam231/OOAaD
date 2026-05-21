@@ -4,8 +4,6 @@ using NSubstitute;
 using App.Scopes;
 using App;
 
-using ICommand = SpaceBattle.Lib.ICommand;
-
 namespace SpaceBattle.Tests
 {
     public class RegisterIoCDependencyMacroCommandTest
@@ -16,7 +14,7 @@ namespace SpaceBattle.Tests
 
             var scope = Ioc.Resolve<object>("IoC.Scope.Create");
 
-            Ioc.Resolve<App.ICommand>("IoC.Scope.Current.Set", scope).Execute();
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
         }
 
         [Fact]

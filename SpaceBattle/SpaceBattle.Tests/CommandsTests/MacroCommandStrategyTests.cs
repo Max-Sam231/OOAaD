@@ -6,8 +6,6 @@ using SpaceBattle.Lib;
 using App.Scopes;
 using App;
 
-using ICommand = SpaceBattle.Lib.ICommand;
-
 namespace SpaceBattle.Tests
 {
     public class CreateMacroCommandStrategyTests
@@ -18,7 +16,7 @@ namespace SpaceBattle.Tests
 
             var scope = Ioc.Resolve<object>("IoC.Scope.Create");
 
-            Ioc.Resolve<App.ICommand>("IoC.Scope.Current.Set", scope).Execute();
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
         }
 
         [Fact]
@@ -34,16 +32,16 @@ namespace SpaceBattle.Tests
             var mockCmd2 = Substitute.For<ICommand>();
             var mockMacroCommand = Substitute.For<ICommand>();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", $"Specs.{specName}",
+            Ioc.Resolve<ICommand>("IoC.Register", $"Specs.{specName}",
                 (object[] a) => new List<string> { "Command.Test1", "Command.Test2" }).Execute();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Test1",
+            Ioc.Resolve<ICommand>("IoC.Register", "Command.Test1",
                 (object[] a) => mockCmd1).Execute();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Command.Test2",
+            Ioc.Resolve<ICommand>("IoC.Register", "Command.Test2",
                 (object[] a) => mockCmd2).Execute();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Commands.Macro",
+            Ioc.Resolve<ICommand>("IoC.Register", "Commands.Macro",
                 (object[] a) =>
                 {
                     var commands = (IEnumerable<ICommand>)a[0];

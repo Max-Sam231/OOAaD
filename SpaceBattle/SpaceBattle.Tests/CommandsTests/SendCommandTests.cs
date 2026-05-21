@@ -1,4 +1,5 @@
 using NSubstitute;
+using App;
 using SpaceBattle.Lib;
 
 public class SendCommandTests

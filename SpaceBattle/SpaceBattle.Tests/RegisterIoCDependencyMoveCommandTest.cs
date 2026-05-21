@@ -4,8 +4,6 @@ using App;
 using App.Scopes;
 using SpaceBattle.Lib;
 
-using ICommand = SpaceBattle.Lib.ICommand;
-
 namespace SpaceBattle.Test
 {
     public class RegisterIoCDependencyMoveCommandTest
@@ -16,7 +14,7 @@ namespace SpaceBattle.Test
 
             var scope = Ioc.Resolve<object>("IoC.Scope.Create");
 
-            Ioc.Resolve<App.ICommand>("IoC.Scope.Current.Set", scope).Execute();
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
         }
 
         [Fact]
@@ -24,7 +22,7 @@ namespace SpaceBattle.Test
         {
             var mockMovable = Substitute.For<IMovable>();
 
-            Ioc.Resolve<App.ICommand>(
+            Ioc.Resolve<ICommand>(
                 "IoC.Register",
                 "Adapters.IMovable",
                 (Func<object[], object>)(args => mockMovable)
@@ -47,7 +45,7 @@ namespace SpaceBattle.Test
             mockMovable.Position.Returns(new Vector(10, 20));
             mockMovable.Velocity.Returns(new Vector(5, 5));
 
-            Ioc.Resolve<App.ICommand>(
+            Ioc.Resolve<ICommand>(
                 "IoC.Register",
                 "Adapters.IMovable",
                 (Func<object[], object>)(args => mockMovable)

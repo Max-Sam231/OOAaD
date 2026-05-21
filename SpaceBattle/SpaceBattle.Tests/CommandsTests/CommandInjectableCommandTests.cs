@@ -1,9 +1,8 @@
 using System;
 using NSubstitute;
 using Xunit;
+using App;
 using SpaceBattle.Lib;
-
-using ICommand = SpaceBattle.Lib.ICommand;
 
 namespace SpaceBattle.Tests
 {

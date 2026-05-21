@@ -3,7 +3,6 @@ using App.Scopes;
 using NSubstitute;
 using Xunit;
 using App;
-using ICommand = SpaceBattle.Lib.ICommand;
 
 namespace SpaceBattle.Tests
 {
@@ -13,7 +12,7 @@ namespace SpaceBattle.Tests
         {
             new InitCommand().Execute();
             var scope = Ioc.Resolve<object>("IoC.Scope.Create");
-            Ioc.Resolve<App.ICommand>("IoC.Scope.Current.Set", scope).Execute();
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
         }
 
         [Fact]
@@ -22,8 +21,8 @@ namespace SpaceBattle.Tests
             var mockCommand = Substitute.For<ICommand>();
             var mockReceiver = Substitute.For<ICommandReceiver>();
 
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Adapters.ICommand", (object[] args) => (ICommand)args[0]).Execute();
-            Ioc.Resolve<App.ICommand>("IoC.Register", "Adapters.ICommandReceiver", (object[] args) => (ICommandReceiver)args[1]).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Adapters.ICommand", (object[] args) => (ICommand)args[0]).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Adapters.ICommandReceiver", (object[] args) => (ICommandReceiver)args[1]).Execute();
 
             new RegisterIoCDependencySendCommand().Execute();
 

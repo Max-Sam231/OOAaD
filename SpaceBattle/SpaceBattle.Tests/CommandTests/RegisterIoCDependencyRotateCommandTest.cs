@@ -4,9 +4,6 @@ using App;
 using App.Scopes;
 using SpaceBattle.Lib;
 
-using ICommand = SpaceBattle.Lib.ICommand;
-using ICommandApp = App.ICommand;
-
 namespace SpaceBattle.Tests
 {
     public class RegisterIoCDependencyRotateCommandTest
@@ -16,7 +13,7 @@ namespace SpaceBattle.Tests
             new InitCommand().Execute();
 
             var scope = Ioc.Resolve<object>("IoC.Scope.Create");
-            Ioc.Resolve<ICommandApp>("IoC.Scope.Current.Set", scope).Execute();
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
         }
 
         [Fact]
@@ -24,7 +21,7 @@ namespace SpaceBattle.Tests
         {
             var mockRotatable = Substitute.For<IRotatable>();
 
-            Ioc.Resolve<ICommandApp>(
+            Ioc.Resolve<ICommand>(
                 "IoC.Register",
                 "Adapters.IRotatable",
                 (Func<object[], object>)(args => mockRotatable)
@@ -46,7 +43,7 @@ namespace SpaceBattle.Tests
             mockRotatable.Angle.Returns(new Angle(1, 8));
             mockRotatable.AngularVelocity.Returns(new Angle(1, 8));
 
-            Ioc.Resolve<ICommandApp>(
+            Ioc.Resolve<ICommand>(
                 "IoC.Register",
                 "Adapters.IRotatable",
                 (Func<object[], object>)(args => mockRotatable)
