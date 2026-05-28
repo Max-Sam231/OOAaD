@@ -17,12 +17,6 @@ namespace SpaceBattle.Lib
             var receiver = _shootable.Receiver ?? throw new InvalidOperationException();
 
             receiver.Receive(projectileCommand);
-
-            if (_shootable is ITorpedoMovementProvider torpedoMovementProvider)
-            {
-                var moveTorpedo = Ioc.Resolve<ICommand>("Commands.Torpedo.Move", torpedoMovementProvider.TorpedoId);
-                receiver.Receive(moveTorpedo);
-            }
         }
     }
 }
