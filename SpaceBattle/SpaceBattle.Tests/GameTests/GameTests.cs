@@ -24,7 +24,8 @@ namespace SpaceBattle.Test
             var mockCommand = Substitute.For<ICommand>();
 
             bool canContinue = true;
-            mockCommand.When(x => x.Execute()).Do(x => {
+            mockCommand.When(x => x.Execute()).Do(x =>
+            {
                 canContinue = false;
             });
 
@@ -48,7 +49,8 @@ namespace SpaceBattle.Test
 
             bool canContinue = true;
             var stopCommand = Substitute.For<ICommand>();
-            stopCommand.When(x => x.Execute()).Do(x => {
+            stopCommand.When(x => x.Execute()).Do(x =>
+            {
                 canContinue = false;
             });
 
@@ -75,7 +77,8 @@ namespace SpaceBattle.Test
             Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.Idle", (Func<object[], object>)(args => new ServerIdleCommand())).Execute();
 
             int callCount = 0;
-            Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.CanContinue", (Func<object[], object>)(args => {
+            Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.CanContinue", (Func<object[], object>)(args =>
+            {
                 callCount++;
                 return callCount <= 1;
             })).Execute();
@@ -83,6 +86,27 @@ namespace SpaceBattle.Test
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
             game.Execute();
             Assert.Equal(2, callCount);
+        }
+        [Fact]
+        public void Game_Constructor_WithNullScope_ShouldThrowArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new Game(null!));
+        }
+
+        [Fact]
+        public void Game_Receive_WithNullCommand_ShouldIgnoreAndNotEnqueue()
+        {
+            var game = new Game(_testGameScope);
+
+            var previousScope = Ioc.Resolve<object>("IoC.Scope.Current");
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", _testGameScope).Execute();
+
+            Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.CanContinue", (Func<object[], object>)(args => false)).Execute();
+
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
+
+            game.Receive(null!);
+            game.Execute();
         }
     }
 }
