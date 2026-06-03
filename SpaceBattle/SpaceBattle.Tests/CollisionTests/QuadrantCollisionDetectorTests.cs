@@ -138,5 +138,19 @@ namespace SpaceBattle.Tests
 
             Assert.True(detector.DetectCollision(a, b));
         }
+
+        [Fact]
+        public void DetectCollision_NullPositionB_ThrowsInvalidOperationException()
+        {
+            var detector = new QuadrantCollisionDetector(10);
+
+            var a = Substitute.For<ICollidable>();
+            a.Position.Returns(new Vector(1, 1));
+
+            var b = Substitute.For<ICollidable>();
+            b.Position.Returns((Vector)null!);
+
+            Assert.Throws<InvalidOperationException>(() => detector.DetectCollision(a, b));
+        }
     }
 }
