@@ -7,6 +7,9 @@ namespace SpaceBattle.Lib
     {
         private readonly int[] _coordinates;
 
+        public int this[int index] => _coordinates[index];
+        public int Dimension => _coordinates.Length;
+
         public Vector(params int[] coordinates)
         {
             _coordinates = coordinates ?? Array.Empty<int>();
