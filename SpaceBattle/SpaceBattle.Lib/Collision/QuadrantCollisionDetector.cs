@@ -29,7 +29,7 @@ namespace SpaceBattle.Lib
             return quadrantA == quadrantB;
         }
 
-        private Vector GetQuadrant(Vector position)
+        public Vector GetQuadrant(Vector position)
         {
             var coordinates = Enumerable.Range(0, position.Dimension)
                 .Select(i => (int)Math.Floor((double)position[i] / _quadrantSize))
