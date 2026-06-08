@@ -59,5 +59,11 @@ namespace SpaceBattle.Lib.Tests
 
             Assert.ThrowsAny<InvalidOperationException>(() => command.Execute());
         }
+
+        [Fact]
+        public void Constructor_NullRotatable_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new RotateCommand(null!));
+        }
     }
 }

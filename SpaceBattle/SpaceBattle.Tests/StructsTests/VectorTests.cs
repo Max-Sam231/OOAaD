@@ -170,5 +170,31 @@ namespace SpaceBattle.Tests
 
             Assert.False(Vector.Equals(v1, v2));
         }
+
+        [Fact]
+        public void Indexer_ValidIndex_ReturnsCorrectValue()
+        {
+            var v = new Vector(10, 20, 30);
+
+            Assert.Equal(10, v[0]);
+            Assert.Equal(20, v[1]);
+            Assert.Equal(30, v[2]);
+        }
+
+        [Fact]
+        public void Indexer_NegativeIndex_ThrowsIndexOutOfRangeException()
+        {
+            var v = new Vector(1, 2, 3);
+
+            Assert.Throws<IndexOutOfRangeException>(() => v[-1]);
+        }
+
+        [Fact]
+        public void Indexer_IndexTooLarge_ThrowsIndexOutOfRangeException()
+        {
+            var v = new Vector(1, 2, 3);
+
+            Assert.Throws<IndexOutOfRangeException>(() => v[3]);
+        }
     }
 }
