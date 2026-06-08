@@ -43,5 +43,17 @@ namespace SpaceBattle.Lib
         {
             return !(a == b);
         }
+
+        public int this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= _coordinates.Length)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+                return _coordinates[index];
+            }
+        }
     }
 }
