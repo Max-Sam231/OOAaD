@@ -19,12 +19,12 @@ namespace SpaceBattle.Lib
         {
             var constructors = _commandType.GetConstructors();
             if (constructors.Length != 1)
-                throw new InvalidOperationException("Команда должна иметь ровно один конструктор.");
+                throw new InvalidOperationException();
 
             var constructor = constructors[0];
             var parameters = constructor.GetParameters();
             if (parameters.Length != 1)
-                throw new InvalidOperationException("Конструктор команды должен принимать ровно один параметр-интерфейс.");
+                throw new InvalidOperationException();
 
             var interfaceType = parameters[0].ParameterType;
 
