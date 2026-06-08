@@ -9,7 +9,7 @@ namespace SpaceBattle.Lib
 
         public RotateCommand(IRotatable rotatable)
         {
-            _rotatable = rotatable;
+            _rotatable = rotatable ?? throw new ArgumentNullException(nameof(rotatable));
         }
 
         public void Execute()
