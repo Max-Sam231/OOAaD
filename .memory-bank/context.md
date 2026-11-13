@@ -51,7 +51,11 @@ Binaries from the base course delivery (not decompiled or modified):
   * A transferable game has its own `EnumerableGameObjectRepository` under `"Game.Repository.ReadOnly"` / `"Game.Repository.Writable"` in the game scope. Only commands sent through `"Game.Command.Send"` are journaled and survive a transfer; each is resolved again as `Ioc.Resolve<ICommand>(type, item)` when it executes.
   * Snapshot JSON: `{"rules", "command_limit", "items": {id: {property: {"type", "value"}}}, "commands": [{"id", "type", "game_item_id"}]}`. Transfer currently works between server threads of one process; the JSON string is the intended payload for a future cross-process channel.
   * `Vector.Dimension` was added for the codec.
-* **Not in `SpaceBattle.Lib` yet:** network endpoint, two-process transfer, waiting for all agents and step numbers, transactions, a composition root that calls the registrations.
+* **Transactions (`SpaceBattle.Lib/Transactions/`, `D-006`, spec `docs/designs/game-transactions.md`):**
+  * `new RegisterIoCDependencyTransactions().Execute()`, run in a game scope, registers `"Game.Transactions"` (the game's `GameTransactions`), `"Game.Item.Transactional"` (dictionary -> `TransactionalGameItem`), `"Commands.InTransaction"` (`ICommand` -> `InTransactionCommand`).
+  * Inside `InTransactionCommand` writes to transactional items go to a journal; commit of the outermost transaction applies them, an exception rolls back and is rethrown. Transactions nest; they never run concurrently because a game is single-threaded.
+  * `TransactionalGameItem` is an `IDictionary<string, object>`, so commands, adapters and `MacroCommand` are unchanged. `Remove` and `Clear` throw `NotSupportedException` while a transaction is open. Only writes to transactional items are undone, not sent commands or repository changes.
+* **Not in `SpaceBattle.Lib` yet:** network endpoint, two-process transfer, waiting for all agents and step numbers, saga, a composition root that calls the registrations.
 
 ## 4. Harness & Status
 * Architectural invariants (`INV-1..INV-9`): [`.agents/rules/ooand-invariants.md`](../.agents/rules/ooand-invariants.md) (`always_on`).
