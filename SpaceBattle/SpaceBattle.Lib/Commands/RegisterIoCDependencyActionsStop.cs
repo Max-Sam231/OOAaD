@@ -7,10 +7,10 @@ namespace SpaceBattle.Lib
 {
     public class StopLongRunningOperationCommand : ICommand
     {
-        private readonly ICommandInjectable _injectable;
+        private readonly ICommandInjecting _injectable;
         private readonly ICommand _emptyCommand;
 
-        public StopLongRunningOperationCommand(ICommandInjectable injectable, ICommand emptyCommand)
+        public StopLongRunningOperationCommand(ICommandInjecting injectable, ICommand emptyCommand)
         {
             _injectable = injectable;
             _emptyCommand = emptyCommand;
@@ -30,7 +30,7 @@ namespace SpaceBattle.Lib
             {
                 var order = (IDictionary<string, object>)args[0];
 
-                var injectable = (ICommandInjectable)order["Injectable"];
+                var injectable = (ICommandInjecting)order["Injectable"];
 
                 var emptyCommand = Ioc.Resolve<ICommand>("Commands.Empty");
 

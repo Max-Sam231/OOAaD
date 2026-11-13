@@ -480,3 +480,13 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Harness & coverage artifacts
+.dev/
+.logs/
+*.py[cod]
+[Cc]overage/
+[Tt]est[Rr]esults/
+code-coverage-results.md
+.env.*
+!.env.example

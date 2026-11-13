@@ -12,7 +12,7 @@ namespace SpaceBattle.Tests
         {
             var projectileCommand = Substitute.For<ICommand>();
             var receiver = Substitute.For<ICommandReceiver>();
-            var shootable = Substitute.For<IShootable>();
+            var shootable = Substitute.For<IShootingObject>();
 
             shootable.ProjectileCommand.Returns(projectileCommand);
             shootable.Receiver.Returns(receiver);
@@ -27,7 +27,7 @@ namespace SpaceBattle.Tests
         public void Execute_ShouldThrowInvalidOperationException_WhenProjectileCommandIsNull()
         {
             var receiver = Substitute.For<ICommandReceiver>();
-            var shootable = Substitute.For<IShootable>();
+            var shootable = Substitute.For<IShootingObject>();
             shootable.ProjectileCommand.Returns((ICommand)null!);
             shootable.Receiver.Returns(receiver);
 
@@ -40,7 +40,7 @@ namespace SpaceBattle.Tests
         public void Execute_ShouldThrowInvalidOperationException_WhenReceiverIsNull()
         {
             var projectileCommand = Substitute.For<ICommand>();
-            var shootable = Substitute.For<IShootable>();
+            var shootable = Substitute.For<IShootingObject>();
             shootable.ProjectileCommand.Returns(projectileCommand);
             shootable.Receiver.Returns((ICommandReceiver)null!);
 

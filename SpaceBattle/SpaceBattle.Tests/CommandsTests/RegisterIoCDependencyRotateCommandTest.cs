@@ -19,11 +19,11 @@ namespace SpaceBattle.Tests
         [Fact]
         public void Execute_ShouldRegisterRotateCommand_AndItShouldBeResolvable()
         {
-            var mockRotatable = Substitute.For<IRotatable>();
+            var mockRotatable = Substitute.For<IRotatingObject>();
 
             Ioc.Resolve<ICommand>(
                 "IoC.Register",
-                "Adapters.IRotatable",
+                "Adapters.IRotatingObject",
                 (Func<object[], object>)(args => mockRotatable)
             ).Execute();
 
@@ -39,13 +39,13 @@ namespace SpaceBattle.Tests
         [Fact]
         public void ResolvedRotateCommand_ShouldUpdateAngle()
         {
-            var mockRotatable = Substitute.For<IRotatable>();
+            var mockRotatable = Substitute.For<IRotatingObject>();
             mockRotatable.Angle.Returns(new Angle(1, 8));
             mockRotatable.AngularVelocity.Returns(new Angle(1, 8));
 
             Ioc.Resolve<ICommand>(
                 "IoC.Register",
-                "Adapters.IRotatable",
+                "Adapters.IRotatingObject",
                 (Func<object[], object>)(args => mockRotatable)
             ).Execute();
 

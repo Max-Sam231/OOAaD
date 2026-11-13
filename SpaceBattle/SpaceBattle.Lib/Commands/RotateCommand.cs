@@ -5,9 +5,9 @@ namespace SpaceBattle.Lib
 {
     public class RotateCommand : ICommand
     {
-        private readonly IRotatable _rotatable;
+        private readonly IRotatingObject _rotatable;
 
-        public RotateCommand(IRotatable rotatable)
+        public RotateCommand(IRotatingObject rotatable)
         {
             _rotatable = rotatable ?? throw new ArgumentNullException(nameof(rotatable));
         }

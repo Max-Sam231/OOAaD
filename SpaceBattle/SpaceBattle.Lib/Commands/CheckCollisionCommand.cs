@@ -5,10 +5,10 @@ namespace SpaceBattle.Lib
 {
     public class CheckCollisionCommand : ICommand
     {
-        private readonly ICollidable _obj1;
-        private readonly ICollidable _obj2;
+        private readonly ICollidingObject _obj1;
+        private readonly ICollidingObject _obj2;
 
-        public CheckCollisionCommand(ICollidable obj1, ICollidable obj2)
+        public CheckCollisionCommand(ICollidingObject obj1, ICollidingObject obj2)
         {
             _obj1 = obj1 ?? throw new ArgumentNullException(nameof(obj1));
             _obj2 = obj2 ?? throw new ArgumentNullException(nameof(obj2));

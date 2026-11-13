@@ -5,9 +5,9 @@ namespace SpaceBattle.Lib
     public class MoveCommand : ICommand
     {
 
-        private readonly IMovable _movable;
+        private readonly IMovingObject _movable;
 
-        public MoveCommand(IMovable movable)
+        public MoveCommand(IMovingObject movable)
         {
             _movable = movable ?? throw new ArgumentNullException(nameof(movable));
         }

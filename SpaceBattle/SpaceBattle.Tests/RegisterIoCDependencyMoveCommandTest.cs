@@ -20,11 +20,11 @@ namespace SpaceBattle.Test
         [Fact]
         public void Execute_ShouldRegisterMoveCommand_AndItShouldBeResolvable()
         {
-            var mockMovable = Substitute.For<IMovable>();
+            var mockMovable = Substitute.For<IMovingObject>();
 
             Ioc.Resolve<ICommand>(
                 "IoC.Register",
-                "Adapters.IMovable",
+                "Adapters.IMovingObject",
                 (Func<object[], object>)(args => mockMovable)
             ).Execute();
 
@@ -41,13 +41,13 @@ namespace SpaceBattle.Test
         [Fact]
         public void ResolvedMoveCommand_ShouldUpdatePosition()
         {
-            var mockMovable = Substitute.For<IMovable>();
+            var mockMovable = Substitute.For<IMovingObject>();
             mockMovable.Position.Returns(new Vector(10, 20));
             mockMovable.Velocity.Returns(new Vector(5, 5));
 
             Ioc.Resolve<ICommand>(
                 "IoC.Register",
-                "Adapters.IMovable",
+                "Adapters.IMovingObject",
                 (Func<object[], object>)(args => mockMovable)
             ).Execute();
 

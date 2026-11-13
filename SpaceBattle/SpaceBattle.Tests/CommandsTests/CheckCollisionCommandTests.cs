@@ -19,11 +19,11 @@ namespace SpaceBattle.Tests
         [Fact]
         public void Execute_CollisionDetected_InvokesCollisionEvent()
         {
-            var obj1 = Substitute.For<ICollidable>();
+            var obj1 = Substitute.For<ICollidingObject>();
             obj1.Position.Returns(new Vector(5, 5));
             obj1.Velocity.Returns(new Vector(10, 0));
 
-            var obj2 = Substitute.For<ICollidable>();
+            var obj2 = Substitute.For<ICollidingObject>();
             obj2.Position.Returns(new Vector(15, 5));
             obj2.Velocity.Returns(new Vector(0, 0));
 
@@ -53,11 +53,11 @@ namespace SpaceBattle.Tests
         [Fact]
         public void Execute_NoCollision_DoesNotInvokeCollisionEvent()
         {
-            var obj1 = Substitute.For<ICollidable>();
+            var obj1 = Substitute.For<ICollidingObject>();
             obj1.Position.Returns(new Vector(0, 0));
             obj1.Velocity.Returns(new Vector(1, 1));
 
-            var obj2 = Substitute.For<ICollidable>();
+            var obj2 = Substitute.For<ICollidingObject>();
             obj2.Position.Returns(new Vector(100, 100));
             obj2.Velocity.Returns(new Vector(-1, -1));
 
@@ -79,14 +79,14 @@ namespace SpaceBattle.Tests
         [Fact]
         public void Constructor_NullObj1_ThrowsArgumentNullException()
         {
-            var obj2 = Substitute.For<ICollidable>();
+            var obj2 = Substitute.For<ICollidingObject>();
             Assert.Throws<ArgumentNullException>(() => new CheckCollisionCommand(null!, obj2));
         }
 
         [Fact]
         public void Constructor_NullObj2_ThrowsArgumentNullException()
         {
-            var obj1 = Substitute.For<ICollidable>();
+            var obj1 = Substitute.For<ICollidingObject>();
             Assert.Throws<ArgumentNullException>(() => new CheckCollisionCommand(obj1, null!));
         }
     }

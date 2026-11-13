@@ -19,11 +19,11 @@ namespace SpaceBattle.Tests
         [Fact]
         public void Execute_ShouldRegisterShootCommand_AndItShouldBeResolvable()
         {
-            var shootable = Substitute.For<IShootable>();
+            var shootable = Substitute.For<IShootingObject>();
 
             Ioc.Resolve<ICommand>(
                 "IoC.Register",
-                "Adapters.IShootable",
+                "Adapters.IShootingObject",
                 (Func<object[], object>)(args => shootable)
             ).Execute();
 
@@ -41,14 +41,14 @@ namespace SpaceBattle.Tests
         {
             var projectileCommand = Substitute.For<ICommand>();
             var receiver = Substitute.For<ICommandReceiver>();
-            var shootable = Substitute.For<IShootable>();
+            var shootable = Substitute.For<IShootingObject>();
 
             shootable.ProjectileCommand.Returns(projectileCommand);
             shootable.Receiver.Returns(receiver);
 
             Ioc.Resolve<ICommand>(
                 "IoC.Register",
-                "Adapters.IShootable",
+                "Adapters.IShootingObject",
                 (Func<object[], object>)(args => shootable)
             ).Execute();
 

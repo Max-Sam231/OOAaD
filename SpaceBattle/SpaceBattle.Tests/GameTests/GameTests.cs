@@ -20,7 +20,7 @@ namespace SpaceBattle.Test
         [Fact]
         public void Game_ShouldProcessCommandSuccessfully_AndExitLoop()
         {
-            var game = new Game(_testGameScope);
+            var game = new Game();
             var mockCommand = Substitute.For<ICommand>();
 
             bool canContinue = true;
@@ -35,17 +35,22 @@ namespace SpaceBattle.Test
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
 
             game.Receive(mockCommand);
-            game.Execute();
+            new InSeparateScopeCommand(_testGameScope, game).Execute();
             mockCommand.Received(1).Execute();
         }
 
         [Fact]
-        public void Game_WhenCommandThrowsException_ShouldNotBreakLoopAndProcessNextCommands()
+        public void Game_WhenCommandThrowsException_ShouldRouteToExceptionHandlerAndProcessNextCommands()
         {
-            var game = new Game(_testGameScope);
+            var game = new Game();
+            var expectedException = new Exception("Game loop test exception");
 
             var badCommand = Substitute.For<ICommand>();
-            badCommand.When(x => x.Execute()).Do(x => throw new Exception("Критическая ошибка в игре"));
+            badCommand.When(x => x.Execute()).Do(x => throw expectedException);
+
+            var handlerCommand = Substitute.For<ICommand>();
+            ICommand? handledCommand = null;
+            Exception? handledException = null;
 
             bool canContinue = true;
             var stopCommand = Substitute.For<ICommand>();
@@ -57,19 +62,29 @@ namespace SpaceBattle.Test
             var previousScope = Ioc.Resolve<object>("IoC.Scope.Current");
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", _testGameScope).Execute();
             Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.CanContinue", (Func<object[], object>)(args => canContinue)).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Exception.Handle", (Func<object[], object>)(args =>
+            {
+                handledCommand = (ICommand)args[0];
+                handledException = (Exception)args[1];
+                return handlerCommand;
+            })).Execute();
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
 
             game.Receive(badCommand);
             game.Receive(stopCommand);
-            game.Execute();
+            new InSeparateScopeCommand(_testGameScope, game).Execute();
+
             badCommand.Received(1).Execute();
+            handlerCommand.Received(1).Execute();
+            Assert.Same(badCommand, handledCommand);
+            Assert.Same(expectedException, handledException);
             stopCommand.Received(1).Execute();
         }
 
         [Fact]
         public void Game_WhenQueueIsEmpty_ShouldExecuteRealServerIdleCommandWithSleep_AndExit()
         {
-            var game = new Game(_testGameScope);
+            var game = new Game();
 
             var previousScope = Ioc.Resolve<object>("IoC.Scope.Current");
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", _testGameScope).Execute();
@@ -84,29 +99,37 @@ namespace SpaceBattle.Test
             })).Execute();
 
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
-            game.Execute();
+            new InSeparateScopeCommand(_testGameScope, game).Execute();
             Assert.Equal(2, callCount);
-        }
-        [Fact]
-        public void Game_Constructor_WithNullScope_ShouldThrowArgumentNullException()
-        {
-            Assert.Throws<ArgumentNullException>(() => new Game(null!));
         }
 
         [Fact]
         public void Game_Receive_WithNullCommand_ShouldIgnoreAndNotEnqueue()
         {
-            var game = new Game(_testGameScope);
+            var game = new Game();
+            var idleCommand = Substitute.For<ICommand>();
+            var exceptionHandlerCommand = Substitute.For<ICommand>();
+            int callCount = 0;
 
             var previousScope = Ioc.Resolve<object>("IoC.Scope.Current");
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", _testGameScope).Execute();
 
-            Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.CanContinue", (Func<object[], object>)(args => false)).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.Idle", (Func<object[], object>)(args => idleCommand)).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Exception.Handle", (Func<object[], object>)(args => exceptionHandlerCommand)).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Game.Loop.CanContinue", (Func<object[], object>)(args =>
+            {
+                callCount++;
+                return callCount <= 1;
+            })).Execute();
 
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
 
             game.Receive(null!);
-            game.Execute();
+            new InSeparateScopeCommand(_testGameScope, game).Execute();
+
+            Assert.Equal(2, callCount);
+            idleCommand.Received(1).Execute();
+            exceptionHandlerCommand.DidNotReceive().Execute();
         }
     }
 }

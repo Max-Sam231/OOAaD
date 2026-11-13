@@ -4,9 +4,9 @@ namespace SpaceBattle.Lib
 {
     public class ShootCommand : ICommand
     {
-        private readonly IShootable _shootable;
+        private readonly IShootingObject _shootable;
 
-        public ShootCommand(IShootable shootable)
+        public ShootCommand(IShootingObject shootable)
         {
             _shootable = shootable ?? throw new ArgumentNullException(nameof(shootable));
         }

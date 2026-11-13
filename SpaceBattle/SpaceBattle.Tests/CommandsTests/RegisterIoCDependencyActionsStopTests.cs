@@ -26,14 +26,14 @@ namespace SpaceBattle.Tests
             var registerCommand = new RegisterIoCDependencyActionsStop();
             registerCommand.Execute();
 
-            var mockInjectable = Substitute.For<ICommandInjectable>();
+            var mockInjectable = Substitute.For<ICommandInjecting>();
             var order = new Dictionary<string, object>
             {
                 { "Injectable", mockInjectable }
             };
 
             var stopCommand = Ioc.Resolve<ICommand>("Actions.Stop", order);
-            
+
             stopCommand.Execute();
 
             Assert.NotNull(stopCommand);

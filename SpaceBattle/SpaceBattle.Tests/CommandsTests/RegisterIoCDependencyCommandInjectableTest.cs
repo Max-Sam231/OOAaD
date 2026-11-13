@@ -28,7 +28,7 @@ namespace SpaceBattle.Tests
             Assert.NotNull(resolvedAsCommand);
             Assert.IsType<CommandInjectableCommand>(resolvedAsCommand);
 
-            var resolvedAsInjectable = Ioc.Resolve<ICommandInjectable>("Commands.CommandInjectable");
+            var resolvedAsInjectable = Ioc.Resolve<ICommandInjecting>("Commands.CommandInjectable");
             Assert.NotNull(resolvedAsInjectable);
             Assert.IsType<CommandInjectableCommand>(resolvedAsInjectable);
 
