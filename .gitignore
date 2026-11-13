@@ -490,3 +490,6 @@ $RECYCLE.BIN/
 code-coverage-results.md
 .env.*
 !.env.example
+
+# Course context: audio recordings stay local
+контекст/аудио ПЗ/
