@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+echo "[pre-push] 1/3 Checking architectural invariants and zero comments (ooand-lint-gate)..." >&2
+python3 "$ROOT/.agents/hooks/ooand-lint-gate.py" --check-all "$ROOT" >&2
+
+HAS_SLN="$(find "$ROOT" -maxdepth 3 \( -name '*.sln' -o -name '*.slnx' \) -not -path "$ROOT/контекст/*" -not -path "$ROOT/.dev/*" | head -n 1)"
+HAS_CSPROJ="$(find "$ROOT" -maxdepth 3 -name '*.csproj' -not -path "$ROOT/контекст/*" -not -path "$ROOT/.dev/*" | head -n 1)"
+TARGET="${HAS_SLN:-$HAS_CSPROJ}"
+
+if [ -n "$TARGET" ]; then
+  echo "[pre-push] 2/3 Checking C# formatting (dotnet format --verify-no-changes)..." >&2
+  dotnet format "$TARGET" --verify-no-changes >&2
+
+  echo "[pre-push] 3/3 Building, running xUnit tests, and verifying 100% Coverlet coverage..." >&2
+  python3 "$ROOT/.agents/hooks/stop-verify-gate.py" --verify-coverage-only "$ROOT" >&2
+fi
+
+echo "[pre-push] All gates passed." >&2

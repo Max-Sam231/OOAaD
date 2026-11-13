@@ -1,0 +1,49 @@
+{
+  "guard-gate": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command|write_file|edit_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/guard-gate.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "ooand-lint-gate": {
+    "enabled": true,
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/ooand-lint-gate.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/ooand-lint-gate.py",
+        "timeout": 10
+      }
+    ]
+  },
+  "stop-verify-gate": {
+    "enabled": true,
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/stop-verify-gate.py",
+        "timeout": 120
+      }
+    ]
+  }
+}

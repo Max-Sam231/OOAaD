@@ -9,7 +9,7 @@ namespace SpaceBattle.Lib.Tests
         [Fact]
         public void RotateCommand_Execute_ShouldRotate()
         {
-            var mockRotation = Substitute.For<IRotatable>();
+            var mockRotation = Substitute.For<IRotatingObject>();
 
             mockRotation.Angle.Returns(new Angle(1, 8));
             mockRotation.AngularVelocity.Returns(new Angle(1, 8));
@@ -23,7 +23,7 @@ namespace SpaceBattle.Lib.Tests
         [Fact]
         public void RotateCommand_Execute_WhenCannotDetermineAngle_ShouldThrowException()
         {
-            var mockRotation = Substitute.For<IRotatable>();
+            var mockRotation = Substitute.For<IRotatingObject>();
 
             mockRotation.Angle.Returns(_ => throw new InvalidOperationException());
             mockRotation.AngularVelocity.Returns(new Angle(1, 8));
@@ -36,7 +36,7 @@ namespace SpaceBattle.Lib.Tests
         [Fact]
         public void RotateCommand_Execute_WhenCannotDetermineAngularVelocity_ShouldThrowException()
         {
-            var mockRotation = Substitute.For<IRotatable>();
+            var mockRotation = Substitute.For<IRotatingObject>();
 
             mockRotation.Angle.Returns(new Angle(1, 8));
             mockRotation.AngularVelocity.Returns(_ => throw new InvalidOperationException());
@@ -49,7 +49,7 @@ namespace SpaceBattle.Lib.Tests
         [Fact]
         public void RotateCommand_Execute_WhenCannotChangeAngle_ShouldThrowException()
         {
-            var mockRotation = Substitute.For<IRotatable>();
+            var mockRotation = Substitute.For<IRotatingObject>();
 
             mockRotation.Angle.Returns(new Angle(1, 8));
             mockRotation.AngularVelocity.Returns(new Angle(1, 8));

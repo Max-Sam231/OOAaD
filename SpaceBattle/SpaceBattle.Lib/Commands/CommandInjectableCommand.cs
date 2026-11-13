@@ -2,7 +2,7 @@ using App;
 
 namespace SpaceBattle.Lib
 {
-    public class CommandInjectableCommand : ICommand, ICommandInjectable
+    public class CommandInjectableCommand : ICommand, ICommandInjecting
     {
         private ICommand? _injectedCommand;
 

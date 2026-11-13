@@ -12,7 +12,7 @@ namespace SpaceBattle.Lib
                 "Commands.Rotate",
                 (Func<object[], object>)(args =>
                 {
-                    var rotatable = Ioc.Resolve<IRotatable>("Adapters.IRotatable", args);
+                    var rotatable = Ioc.Resolve<IRotatingObject>("Adapters.IRotatingObject", args);
                     return new RotateCommand(rotatable);
                 })
             ).Execute();

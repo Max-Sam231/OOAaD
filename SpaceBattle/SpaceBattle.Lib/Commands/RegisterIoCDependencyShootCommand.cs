@@ -11,7 +11,7 @@ namespace SpaceBattle.Lib
                 "Commands.Shoot",
                 (Func<object[], object>)(args =>
                 {
-                    var shootable = Ioc.Resolve<IShootable>("Adapters.IShootable", args);
+                    var shootable = Ioc.Resolve<IShootingObject>("Adapters.IShootingObject", args);
                     return new ShootCommand(shootable);
                 })
             ).Execute();

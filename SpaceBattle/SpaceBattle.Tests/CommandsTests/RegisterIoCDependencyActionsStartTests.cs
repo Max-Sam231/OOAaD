@@ -20,8 +20,7 @@ namespace SpaceBattle.Tests
         [Fact]
         public void Execute_ShouldRegisterActionsStartDependency_AndResolveCorrectly()
         {
-            // Arrange
-            var mockInjectable = Substitute.For<ICommandInjectable>();
+            var mockInjectable = Substitute.For<ICommandInjecting>();
             Ioc.Resolve<ICommand>("IoC.Register", "Commands.CommandInjectable", new Func<object[], object>((args) => mockInjectable)).Execute();
 
             var mockSendCommand = Substitute.For<ICommand>();
@@ -39,13 +38,11 @@ namespace SpaceBattle.Tests
                 { "Target", mockTarget }
             };
 
-            // Act
             var resultCommand = Ioc.Resolve<ICommand>("Actions.Start", order);
 
             Assert.NotNull(resultCommand);
             Assert.Same(mockSendCommand, resultCommand);
 
-            
             mockInjectable.Received(1).Inject(mockTarget);
         }
     }

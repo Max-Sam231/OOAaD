@@ -7,11 +7,9 @@ namespace SpaceBattle.Lib
     public class Game : ICommand, ICommandReceiver
     {
         private readonly ConcurrentQueue<ICommand> _queue = new ConcurrentQueue<ICommand>();
-        private readonly object _gameScope;
 
-        public Game(object gameScope)
+        public Game()
         {
-            _gameScope = gameScope ?? throw new ArgumentNullException(nameof(gameScope));
         }
 
         public void Receive(ICommand command)
@@ -21,33 +19,23 @@ namespace SpaceBattle.Lib
 
         public void Execute()
         {
-            var previousScope = Ioc.Resolve<object>("IoC.Scope.Current");
-            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", _gameScope).Execute();
-
-            try
+            while (Ioc.Resolve<bool>("Game.Loop.CanContinue"))
             {
-                while (Ioc.Resolve<bool>("Game.Loop.CanContinue"))
+                if (_queue.TryDequeue(out var command))
                 {
-                    if (_queue.TryDequeue(out var command))
+                    try
                     {
-                        try
-                        {
-                            command.Execute();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"[Game Loop Error]: {ex.Message}");
-                        }
+                        command.Execute();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Ioc.Resolve<ICommand>("Game.Loop.Idle").Execute();
+                        Ioc.Resolve<ICommand>("Exception.Handle", command, ex).Execute();
                     }
                 }
-            }
-            finally
-            {
-                Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", previousScope).Execute();
+                else
+                {
+                    Ioc.Resolve<ICommand>("Game.Loop.Idle").Execute();
+                }
             }
         }
     }
