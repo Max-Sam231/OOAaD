@@ -44,6 +44,8 @@ namespace SpaceBattle.Lib
             return !(a == b);
         }
 
+        public int Dimension => _coordinates.Length;
+
         public int this[int index]
         {
             get
