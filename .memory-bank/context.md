@@ -43,7 +43,15 @@ Binaries from the base course delivery (not decompiled or modified):
   * Loop (`ServerThreadLoopCommand`): no ready game → block on the inbox; otherwise alternate one inbox command and one game turn. A turn runs at most the limit of commands; a game with an empty queue leaves the ready set until `SchedulingCommandReceiver.Receive` is called.
   * Threading rule: the receiver returned by `"Game.Create"` is safe to call from any thread (it posts to the thread's inbox). The scheduler, game queues and game scopes are used only on the server thread. To register rules in a game scope, deliver the registering command to the game.
   * `"Exception.Handle"` must be registered in the scope the thread is created in before `Start()`; if it is missing or throws, the process terminates.
-* **Not in `SpaceBattle.Lib` yet:** network endpoint, waiting for all agents and step numbers, moving games between threads, transactions, server-to-server transfer, a composition root that calls the registrations.
+* **Game snapshot and transfer (`SpaceBattle.Lib/Transfer/`, `D-005`, spec `docs/designs/game-transfer.md`):**
+  * `new RegisterIoCDependencySnapshotCodecs().Execute()` registers `"Snapshot.Codecs"` (`SnapshotValueCodecs` for `Int32`, `String`, `Vector`, `Angle`, keyed by the full type name; a `null` or a value of any other type is skipped when saving).
+  * `new RegisterIoCDependencyTransferableGame().Execute()` registers `"Game.Create.Transferable"` (`ServerThread`, command limit, rule set name → `TransferableGame`), `"Game.Command.Send"` (`TransferableGame`, IoC key of the command, game item id → `ICommand`), `"Game.Transfer"` (`TransferableGame`, target `ServerThread` → `ICommand`), `"Game.Restore"` (snapshot JSON, `ServerThread` → `TransferableGame`).
+  * A rule set is an IoC key `"Game.Rules.<name>"` returning an `ICommand` that registers the game's rules and creates its items in the current (game) scope. It runs again on restore; restored values are then merged into the items it created, so non-serializable values come from the rules; items the rules created that are absent from the snapshot are removed.
+  * Constraints: every thread a game has lived on must stay running, because old handles forward through it; server threads involved in a transfer must be created from the same scope.
+  * A transferable game has its own `EnumerableGameObjectRepository` under `"Game.Repository.ReadOnly"` / `"Game.Repository.Writable"` in the game scope. Only commands sent through `"Game.Command.Send"` are journaled and survive a transfer; each is resolved again as `Ioc.Resolve<ICommand>(type, item)` when it executes.
+  * Snapshot JSON: `{"rules", "command_limit", "items": {id: {property: {"type", "value"}}}, "commands": [{"id", "type", "game_item_id"}]}`. Transfer currently works between server threads of one process; the JSON string is the intended payload for a future cross-process channel.
+  * `Vector.Dimension` was added for the codec.
+* **Not in `SpaceBattle.Lib` yet:** network endpoint, two-process transfer, waiting for all agents and step numbers, transactions, a composition root that calls the registrations.
 
 ## 4. Harness & Status
 * Architectural invariants (`INV-1..INV-9`): [`.agents/rules/ooand-invariants.md`](../.agents/rules/ooand-invariants.md) (`always_on`).
