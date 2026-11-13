@@ -37,7 +37,13 @@ Binaries from the base course delivery (not decompiled or modified):
   * Standard property = read/write the dictionary entry named like the property. Non-standard getter = `[assembly: Dependency(typeof(I), "Property", typeof(Utility), "StaticMethod")]`, method signature `static object M(object[] args)`.
   * `new RegisterIoCDependencyCommandWithAdapter("Commands.X", typeof(XCommand)).Execute()` registers a command whose single constructor parameter is an interface; it does not register the adapter itself.
   * Only property-only interfaces are supported. NuGet: `Microsoft.CodeAnalysis.CSharp` 4.12.0.
-* **Not in `SpaceBattle.Lib` yet:** pluggable queues, transactions, server-to-server transfer, threads/server runtime, a composition root that calls the adapter registrations.
+* **Server thread and game scheduling (`SpaceBattle.Lib/Server/`, `D-004`, spec `docs/designs/server-thread-queues.md`):**
+  * `new RegisterIoCDependencyServerThread().Execute()` registers `"Server.Thread.Create"` (→ `ServerThread`: `Receive` is the only thread-safe entry, `Start()`, `Join(timeout)`; its body runs in the scope current at creation), `"Server.Thread.Stop.Hard"` / `"Server.Thread.Stop.Soft"` (`ServerThread` → `ICommand` that posts the stop into that thread's inbox).
+  * `new RegisterIoCDependencyGameCreate().Execute()` registers `"Game.Create"` (`ServerThread`, `int` command limit → `ICommandReceiver`). Each game gets its own scope (child of the scope current at creation) holding `"Game.Loop.CanContinue"` and `"Game.Loop.Idle"` backed by `GameQuantumState`; `Game` itself is unchanged.
+  * Loop (`ServerThreadLoopCommand`): no ready game → block on the inbox; otherwise alternate one inbox command and one game turn. A turn runs at most the limit of commands; a game with an empty queue leaves the ready set until `SchedulingCommandReceiver.Receive` is called.
+  * Threading rule: the receiver returned by `"Game.Create"` is safe to call from any thread (it posts to the thread's inbox). The scheduler, game queues and game scopes are used only on the server thread. To register rules in a game scope, deliver the registering command to the game.
+  * `"Exception.Handle"` must be registered in the scope the thread is created in before `Start()`; if it is missing or throws, the process terminates.
+* **Not in `SpaceBattle.Lib` yet:** network endpoint, waiting for all agents and step numbers, moving games between threads, transactions, server-to-server transfer, a composition root that calls the registrations.
 
 ## 4. Harness & Status
 * Architectural invariants (`INV-1..INV-9`): [`.agents/rules/ooand-invariants.md`](../.agents/rules/ooand-invariants.md) (`always_on`).
