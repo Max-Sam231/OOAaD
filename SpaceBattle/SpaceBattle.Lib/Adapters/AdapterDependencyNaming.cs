@@ -9,7 +9,5 @@ namespace SpaceBattle.Lib
         public static string Setter(Type interfaceType, string propertyName) => Getter(interfaceType, propertyName) + ".Set";
 
         public static string AdapterTypeName(Type interfaceType) => interfaceType.Name + "Adapter";
-
-        public static string FactoryTypeName(Type interfaceType) => "SpaceBattle.Generated." + interfaceType.Name + "AdapterFactory";
     }
 }

@@ -1,3 +1,5 @@
+using App;
+using App.Scopes;
 using SpaceBattle.Lib;
 using Xunit;
 
@@ -5,6 +7,17 @@ namespace SpaceBattle.Test
 {
     public class AdapterSourceAndCompilerTests
     {
+        public AdapterSourceAndCompilerTests()
+        {
+            new InitCommand().Execute();
+
+            var scope = Ioc.Resolve<object>("IoC.Scope.Create");
+
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
+
+            new RegisterIoCDependencyAdapterTemplates().Execute();
+        }
+
         [Fact]
         public void Naming_BuildsKeysFromInterfaceAndProperty()
         {
@@ -14,7 +27,6 @@ namespace SpaceBattle.Test
             Assert.Equal("SpaceBattle.Test.ITestMovingObject.Position", AdapterDependencyNaming.Getter(type, "Position"));
             Assert.Equal("SpaceBattle.Test.ITestMovingObject.Position.Set", AdapterDependencyNaming.Setter(type, "Position"));
             Assert.Equal("ITestMovingObjectAdapter", AdapterDependencyNaming.AdapterTypeName(type));
-            Assert.Equal("SpaceBattle.Generated.ITestMovingObjectAdapterFactory", AdapterDependencyNaming.FactoryTypeName(type));
         }
 
         [Fact]
@@ -51,8 +63,8 @@ namespace SpaceBattle.Test
             var source = new AdapterSourceBuilder().Build(type);
             var compiler = new AdapterFactoryCompiler();
 
-            compiler.Compile(source, AdapterDependencyNaming.FactoryTypeName(type));
-            var factory = compiler.Compile(source, AdapterDependencyNaming.FactoryTypeName(type));
+            compiler.Compile(source);
+            var factory = compiler.Compile(source);
 
             Assert.IsAssignableFrom<ITestMovingObject>(factory.Create(new Dictionary<string, object>()));
         }
@@ -61,9 +73,66 @@ namespace SpaceBattle.Test
         public void Compile_InvalidSource_ThrowsInvalidOperationExceptionWithDiagnostics()
         {
             var exception = Assert.Throws<InvalidOperationException>(
-                () => new AdapterFactoryCompiler().Compile("class Broken {", "Broken"));
+                () => new AdapterFactoryCompiler().Compile("class Broken {"));
 
             Assert.Contains("error", exception.Message);
+        }
+
+        [Theory]
+        [InlineData("public class NotAFactory { }")]
+        [InlineData("public abstract class AbstractFactory : SpaceBattle.Lib.IAdapterFactory { public abstract object Create(System.Collections.Generic.IDictionary<string, object> gameItem); }")]
+        [InlineData("public class First : SpaceBattle.Lib.IAdapterFactory { public object Create(System.Collections.Generic.IDictionary<string, object> gameItem) { return null; } } public class Second : First { }")]
+        public void Compile_SourceWithoutExactlyOneConcreteFactory_ThrowsInvalidOperationException(string source)
+        {
+            Assert.Throws<InvalidOperationException>(() => new AdapterFactoryCompiler().Compile(source));
+        }
+
+        [Fact]
+        public void Templates_AreRegisteredFromTheTextFilesNextToTheAssembly()
+        {
+            Assert.Contains("{{AdapterName}}", Ioc.Resolve<string>("Adapters.Template.Class"));
+            Assert.Contains("{{Accessors}}", Ioc.Resolve<string>("Adapters.Template.Property"));
+            Assert.Contains("{{GetterKey}}", Ioc.Resolve<string>("Adapters.Template.Getter"));
+            Assert.Contains("{{SetterKey}}", Ioc.Resolve<string>("Adapters.Template.Setter"));
+        }
+
+        [Fact]
+        public void Templates_FromDirectoryMissingAFile_ThrowAndRegisterNothing()
+        {
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Clear").Execute();
+            var scope = Ioc.Resolve<object>("IoC.Scope.Create");
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
+            var partial = Path.Combine(AppContext.BaseDirectory, "PartialTemplates");
+            Directory.CreateDirectory(partial);
+            File.Copy(
+                Path.Combine(AppContext.BaseDirectory, "Adapters", "Templates", "AdapterClass.txt"),
+                Path.Combine(partial, "AdapterClass.txt"),
+                true);
+
+            Assert.ThrowsAny<IOException>(() => new RegisterIoCDependencyAdapterTemplates(partial).Execute());
+            Assert.ThrowsAny<Exception>(() => Ioc.Resolve<string>("Adapters.Template.Class"));
+        }
+
+        [Fact]
+        public void Templates_WithNullDirectory_ThrowArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new RegisterIoCDependencyAdapterTemplates(null!));
+        }
+
+        [Fact]
+        public void Build_UsesTheClassTemplateRegisteredInTheCurrentScope()
+        {
+            var custom = Ioc.Resolve<string>("Adapters.Template.Class")
+                .Replace("namespace SpaceBattle.Generated", "namespace Team.Custom");
+            var gameScope = Ioc.Resolve<object>("IoC.Scope.Create");
+            Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", gameScope).Execute();
+            Ioc.Resolve<ICommand>("IoC.Register", "Adapters.Template.Class", (Func<object[], object>)(args => custom)).Execute();
+
+            var source = new AdapterSourceBuilder().Build(typeof(ITestMovingObject));
+            var factory = new AdapterFactoryCompiler().Compile(source);
+
+            Assert.Contains("namespace Team.Custom", source);
+            Assert.IsAssignableFrom<ITestMovingObject>(factory.Create(new Dictionary<string, object>()));
         }
 
         [Fact]

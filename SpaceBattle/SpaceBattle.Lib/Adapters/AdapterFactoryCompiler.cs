@@ -6,7 +6,7 @@ namespace SpaceBattle.Lib
 {
     public class AdapterFactoryCompiler
     {
-        public IAdapterFactory Compile(string source, string factoryTypeName)
+        public IAdapterFactory Compile(string source)
         {
             var references = AppDomain.CurrentDomain.GetAssemblies()
                 .Where(assembly => assembly.Location.Length > 0)
@@ -29,7 +29,17 @@ namespace SpaceBattle.Lib
             stream.Seek(0, SeekOrigin.Begin);
             var assembly = AssemblyLoadContext.Default.LoadFromStream(stream);
 
-            return (IAdapterFactory)Activator.CreateInstance(assembly.GetType(factoryTypeName, true)!)!;
+            var factoryTypes = assembly.GetTypes()
+                .Where(type => type.IsClass && !type.IsAbstract && typeof(IAdapterFactory).IsAssignableFrom(type))
+                .ToList();
+
+            if (factoryTypes.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Generated source must declare exactly one concrete IAdapterFactory class, found {factoryTypes.Count}: {string.Join(", ", factoryTypes.Select(type => type.FullName))}.");
+            }
+
+            return (IAdapterFactory)Activator.CreateInstance(factoryTypes[0])!;
         }
     }
 }

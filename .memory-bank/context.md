@@ -37,6 +37,7 @@ Binaries from the base course delivery (not decompiled or modified):
   * Standard property = read/write the dictionary entry named like the property. Non-standard getter = `[assembly: Dependency(typeof(I), "Property", typeof(Utility), "StaticMethod")]`, method signature `static object M(object[] args)`.
   * `new RegisterIoCDependencyCommandWithAdapter("Commands.X", typeof(XCommand)).Execute()` registers a command whose single constructor parameter is an interface; it does not register the adapter itself.
   * Only property-only interfaces are supported. NuGet: `Microsoft.CodeAnalysis.CSharp` 4.12.0.
+  * Generated source comes from text templates (`D-007`): `SpaceBattle.Lib/Adapters/Templates/AdapterClass.txt`, `AdapterProperty.txt`, `AdapterGetter.txt`, `AdapterSetter.txt` with `{{Name}}` placeholders, copied next to the assembly. `RegisterIoCDependencyAdapterTemplates` registers them as `"Adapters.Template.Class"`, `".Property"`, `".Getter"`, `".Setter"`; `RegisterIoCDependencyAdapterFactory` runs it first. A scope may register another template text before the first factory for an interface is compiled. The compiler picks the single `IAdapterFactory` type from the generated assembly, so namespaces and class names in templates are free.
 * **Not in `SpaceBattle.Lib` yet:** pluggable queues, transactions, server-to-server transfer, threads/server runtime, a composition root that calls the adapter registrations.
 
 ## 4. Harness & Status

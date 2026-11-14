@@ -1,11 +1,9 @@
-using System.Text;
+using App;
 
 namespace SpaceBattle.Lib
 {
     public class AdapterSourceBuilder
     {
-        private const string GameItemType = "global::System.Collections.Generic.IDictionary<string, object>";
-
         public string Build(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
@@ -26,46 +24,48 @@ namespace SpaceBattle.Lib
                 throw new ArgumentException($"{interfaceType.FullName} declares members other than properties.", nameof(interfaceType));
             }
 
-            var adapterName = AdapterDependencyNaming.AdapterTypeName(interfaceType);
-            var source = new StringBuilder();
+            var classTemplate = Ioc.Resolve<string>("Adapters.Template.Class");
+            var propertyTemplate = Ioc.Resolve<string>("Adapters.Template.Property");
+            var getterTemplate = Ioc.Resolve<string>("Adapters.Template.Getter");
+            var setterTemplate = Ioc.Resolve<string>("Adapters.Template.Setter");
 
-            source.AppendLine("namespace SpaceBattle.Generated");
-            source.AppendLine("{");
-            source.AppendLine($"    public class {adapterName} : {TypeName(interfaceType)}");
-            source.AppendLine("    {");
-            source.AppendLine($"        private readonly {GameItemType} _gameItem;");
-            source.AppendLine($"        public {adapterName}({GameItemType} gameItem) {{ _gameItem = gameItem; }}");
-
-            foreach (var property in properties)
+            var renderedProperties = properties.Select(property =>
             {
                 var propertyType = TypeName(property.PropertyType);
-
-                source.AppendLine($"        public {propertyType} {property.Name}");
-                source.AppendLine("        {");
+                var accessorTexts = new List<string>();
 
                 if (property.CanRead)
                 {
-                    var getter = AdapterDependencyNaming.Getter(interfaceType, property.Name);
-                    source.AppendLine($"            get {{ return global::App.Ioc.Resolve<{propertyType}>(\"{getter}\", _gameItem); }}");
+                    accessorTexts.Add(Render(
+                        getterTemplate,
+                        ("PropertyType", propertyType),
+                        ("GetterKey", AdapterDependencyNaming.Getter(interfaceType, property.Name))));
                 }
 
                 if (property.CanWrite)
                 {
-                    var setter = AdapterDependencyNaming.Setter(interfaceType, property.Name);
-                    source.AppendLine($"            set {{ global::App.Ioc.Resolve<global::App.ICommand>(\"{setter}\", _gameItem, value).Execute(); }}");
+                    accessorTexts.Add(Render(
+                        setterTemplate,
+                        ("SetterKey", AdapterDependencyNaming.Setter(interfaceType, property.Name))));
                 }
 
-                source.AppendLine("        }");
-            }
+                return Render(
+                    propertyTemplate,
+                    ("PropertyType", propertyType),
+                    ("PropertyName", property.Name),
+                    ("Accessors", string.Join(Environment.NewLine, accessorTexts)));
+            });
 
-            source.AppendLine("    }");
-            source.AppendLine($"    public class {adapterName}Factory : global::SpaceBattle.Lib.IAdapterFactory");
-            source.AppendLine("    {");
-            source.AppendLine($"        public object Create({GameItemType} gameItem) {{ return new {adapterName}(gameItem); }}");
-            source.AppendLine("    }");
-            source.AppendLine("}");
+            return Render(
+                classTemplate,
+                ("AdapterName", AdapterDependencyNaming.AdapterTypeName(interfaceType)),
+                ("InterfaceType", TypeName(interfaceType)),
+                ("Properties", string.Join(Environment.NewLine, renderedProperties)));
+        }
 
-            return source.ToString();
+        private static string Render(string template, params (string Name, string Value)[] values)
+        {
+            return values.Aggregate(template, (text, value) => text.Replace("{{" + value.Name + "}}", value.Value));
         }
 
         private static string TypeName(Type type)

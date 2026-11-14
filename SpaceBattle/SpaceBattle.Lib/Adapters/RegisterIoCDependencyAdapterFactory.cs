@@ -7,6 +7,8 @@ namespace SpaceBattle.Lib
     {
         public void Execute()
         {
+            new RegisterIoCDependencyAdapterTemplates().Execute();
+
             var builder = new AdapterSourceBuilder();
             var compiler = new AdapterFactoryCompiler();
             var factories = new ConcurrentDictionary<Type, IAdapterFactory>();
@@ -16,7 +18,7 @@ namespace SpaceBattle.Lib
                 "Adapters.Factory",
                 (Func<object[], object>)(args => factories.GetOrAdd(
                     (Type)args[0],
-                    type => compiler.Compile(builder.Build(type), AdapterDependencyNaming.FactoryTypeName(type))))
+                    type => compiler.Compile(builder.Build(type))))
             ).Execute();
         }
     }
