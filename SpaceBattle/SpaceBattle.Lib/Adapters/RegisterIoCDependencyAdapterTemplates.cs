@@ -10,6 +10,7 @@ namespace SpaceBattle.Lib
             ("Adapters.Template.Property", "AdapterProperty.txt"),
             ("Adapters.Template.Getter", "AdapterGetter.txt"),
             ("Adapters.Template.Setter", "AdapterSetter.txt"),
+            ("Adapters.Template.CommandFactory", "CommandFactory.txt"),
         ];
 
         private readonly string _directory;

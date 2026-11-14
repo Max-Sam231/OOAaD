@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace SpaceBattle.Lib
 {
-    public class AdapterFactoryCompiler
+    public class GeneratedCodeCompiler
     {
-        public IAdapterFactory Compile(string source)
+        public T Compile<T>(string source)
         {
             var references = AppDomain.CurrentDomain.GetAssemblies()
                 .Where(assembly => assembly.Location.Length > 0)
@@ -30,16 +30,16 @@ namespace SpaceBattle.Lib
             var assembly = AssemblyLoadContext.Default.LoadFromStream(stream);
 
             var factoryTypes = assembly.GetTypes()
-                .Where(type => type.IsClass && !type.IsAbstract && typeof(IAdapterFactory).IsAssignableFrom(type))
+                .Where(type => type.IsClass && !type.IsAbstract && typeof(T).IsAssignableFrom(type))
                 .ToList();
 
             if (factoryTypes.Count != 1)
             {
                 throw new InvalidOperationException(
-                    $"Generated source must declare exactly one concrete IAdapterFactory class, found {factoryTypes.Count}: {string.Join(", ", factoryTypes.Select(type => type.FullName))}.");
+                    $"Generated source must declare exactly one concrete {typeof(T).Name} class, found {factoryTypes.Count}: {string.Join(", ", factoryTypes.Select(type => type.FullName))}.");
             }
 
-            return (IAdapterFactory)Activator.CreateInstance(factoryTypes[0])!;
+            return (T)Activator.CreateInstance(factoryTypes[0])!;
         }
     }
 }

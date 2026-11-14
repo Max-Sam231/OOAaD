@@ -61,10 +61,10 @@ namespace SpaceBattle.Test
         {
             var type = typeof(ITestMovingObject);
             var source = new AdapterSourceBuilder().Build(type);
-            var compiler = new AdapterFactoryCompiler();
+            var compiler = new GeneratedCodeCompiler();
 
-            compiler.Compile(source);
-            var factory = compiler.Compile(source);
+            compiler.Compile<IAdapterFactory>(source);
+            var factory = compiler.Compile<IAdapterFactory>(source);
 
             Assert.IsAssignableFrom<ITestMovingObject>(factory.Create(new Dictionary<string, object>()));
         }
@@ -73,7 +73,7 @@ namespace SpaceBattle.Test
         public void Compile_InvalidSource_ThrowsInvalidOperationExceptionWithDiagnostics()
         {
             var exception = Assert.Throws<InvalidOperationException>(
-                () => new AdapterFactoryCompiler().Compile("class Broken {"));
+                () => new GeneratedCodeCompiler().Compile<IAdapterFactory>("class Broken {"));
 
             Assert.Contains("error", exception.Message);
         }
@@ -84,7 +84,7 @@ namespace SpaceBattle.Test
         [InlineData("public class First : SpaceBattle.Lib.IAdapterFactory { public object Create(System.Collections.Generic.IDictionary<string, object> gameItem) { return null; } } public class Second : First { }")]
         public void Compile_SourceWithoutExactlyOneConcreteFactory_ThrowsInvalidOperationException(string source)
         {
-            Assert.Throws<InvalidOperationException>(() => new AdapterFactoryCompiler().Compile(source));
+            Assert.Throws<InvalidOperationException>(() => new GeneratedCodeCompiler().Compile<IAdapterFactory>(source));
         }
 
         [Fact]
@@ -94,6 +94,7 @@ namespace SpaceBattle.Test
             Assert.Contains("{{Accessors}}", Ioc.Resolve<string>("Adapters.Template.Property"));
             Assert.Contains("{{GetterKey}}", Ioc.Resolve<string>("Adapters.Template.Getter"));
             Assert.Contains("{{SetterKey}}", Ioc.Resolve<string>("Adapters.Template.Setter"));
+            Assert.Contains("{{CommandType}}", Ioc.Resolve<string>("Adapters.Template.CommandFactory"));
         }
 
         [Fact]
@@ -129,7 +130,7 @@ namespace SpaceBattle.Test
             Ioc.Resolve<ICommand>("IoC.Register", "Adapters.Template.Class", (Func<object[], object>)(args => custom)).Execute();
 
             var source = new AdapterSourceBuilder().Build(typeof(ITestMovingObject));
-            var factory = new AdapterFactoryCompiler().Compile(source);
+            var factory = new GeneratedCodeCompiler().Compile<IAdapterFactory>(source);
 
             Assert.Contains("namespace Team.Custom", source);
             Assert.IsAssignableFrom<ITestMovingObject>(factory.Create(new Dictionary<string, object>()));

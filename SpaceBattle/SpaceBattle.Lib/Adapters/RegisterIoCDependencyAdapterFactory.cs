@@ -10,7 +10,7 @@ namespace SpaceBattle.Lib
             new RegisterIoCDependencyAdapterTemplates().Execute();
 
             var builder = new AdapterSourceBuilder();
-            var compiler = new AdapterFactoryCompiler();
+            var compiler = new GeneratedCodeCompiler();
             var factories = new ConcurrentDictionary<Type, IAdapterFactory>();
 
             Ioc.Resolve<ICommand>(
@@ -18,7 +18,7 @@ namespace SpaceBattle.Lib
                 "Adapters.Factory",
                 (Func<object[], object>)(args => factories.GetOrAdd(
                     (Type)args[0],
-                    type => compiler.Compile(builder.Build(type))))
+                    type => compiler.Compile<IAdapterFactory>(builder.Build(type))))
             ).Execute();
         }
     }

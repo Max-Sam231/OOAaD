@@ -14,6 +14,8 @@ namespace SpaceBattle.Test
             var scope = Ioc.Resolve<object>("IoC.Scope.Create");
 
             Ioc.Resolve<ICommand>("IoC.Scope.Current.Set", scope).Execute();
+
+            new RegisterIoCDependencyCommandFactory().Execute();
         }
 
         [Fact]
@@ -53,6 +55,33 @@ namespace SpaceBattle.Test
 
             var testMove = Assert.IsType<TestMoveCommand>(command);
             Assert.Equal(new Vector(8, 9), testMove.Obj.Position);
+        }
+
+        [Fact]
+        public void SourceBuilder_RendersFactoryForTheCommandAndItsInterface()
+        {
+            new RegisterIoCDependencyAdapterTemplates().Execute();
+
+            var source = new CommandFactorySourceBuilder().Build(typeof(TestMoveCommand));
+
+            Assert.Contains("class TestMoveCommandFactory", source);
+            Assert.Contains("new global::SpaceBattle.Test.TestMoveCommand((global::SpaceBattle.Test.ITestMovingObject)", source);
+            Assert.Contains("\"Adapters.ITestMovingObject\"", source);
+        }
+
+        [Fact]
+        public void CommandFactory_IsCompiledOnceAndCreatesTheCommandOverTheAdapter()
+        {
+            new RegisterIoCDependencyAdapterFactory().Execute();
+            new RegisterIoCDependencyAdapter(typeof(ITestMovingObject)).Execute();
+            var gameItem = new Dictionary<string, object> { ["Position"] = new Vector(1, 2) };
+
+            var first = Ioc.Resolve<ICommandFactory>("Commands.Factory", typeof(TestMoveCommand));
+            var second = Ioc.Resolve<ICommandFactory>("Commands.Factory", typeof(TestMoveCommand));
+            var command = Assert.IsType<TestMoveCommand>(first.Create(gameItem));
+
+            Assert.Same(first, second);
+            Assert.Equal(new Vector(1, 2), command.Obj.Position);
         }
     }
 }

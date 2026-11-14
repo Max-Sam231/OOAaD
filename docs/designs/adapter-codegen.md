@@ -1,6 +1,6 @@
 # Spec: Adapter Code Generation (`adapter-codegen`)
 
-* **Decisions:** `D-003`, `D-007` in `docs/DECISIONS.md`
+* **Decisions:** `D-003`, `D-007`, `D-008` in `docs/DECISIONS.md`
 * **Target Repository:** `SpaceBattle/SpaceBattle.sln` (`SpaceBattle.Lib`, `SpaceBattle.Tests`)
 * **Sources:** practice session 2 transcript (`контекст/транскрипт ПЗ/ПЗ_2.md`), wiki lab 5 (`https://wiki.pmifi.ru/disciplines/ooaad/lab-di-and-adapter`), `origin/feature/5lab`.
 
@@ -46,11 +46,11 @@
 | `IAdapterFactory` | `object Create(IDictionary<string, object> gameItem)`. Hand-written so calling code knows the type at compile time. |
 | `AdapterDependencyNaming` | Single place for key rules: `Adapter(Type)` → `"Adapters." + type.Name`; `Getter(Type, string property)` → `type.FullName + "." + property`; `Setter(...)` → getter + `".Set"`. |
 | `AdapterSourceBuilder` | `string Build(Type interfaceType)`. Emits namespace `SpaceBattle.Generated` with class `<Name>Adapter : <interface>` and class `<Name>AdapterFactory : IAdapterFactory`. Getter body: `Ioc.Resolve<TProp>("<getter key>", _gameItem)`. Setter body: `Ioc.Resolve<ICommand>("<setter key>", _gameItem, value).Execute()`. Type names are emitted with `global::` and full generic arguments. |
-| `AdapterFactoryCompiler` | `IAdapterFactory Compile(string source, string factoryTypeName)`. Roslyn `CSharpCompilation`; references are all loaded non-dynamic assemblies with a non-empty `Location`. Loads the result with `AssemblyLoadContext.Default.LoadFromStream` and creates the factory with `Activator.CreateInstance` — the only reflection-based instantiation, once per interface. |
+| `AdapterFactoryCompiler` (superseded: renamed to `GeneratedCodeCompiler`, see `D-007`, `D-008`) | `IAdapterFactory Compile(string source, string factoryTypeName)`. Roslyn `CSharpCompilation`; references are all loaded non-dynamic assemblies with a non-empty `Location`. Loads the result with `AssemblyLoadContext.Default.LoadFromStream` and creates the factory with `Activator.CreateInstance` — the only reflection-based instantiation, once per interface. |
 | `RegisterIoCDependencyAdapterFactory` | Registers `"Adapters.Factory"`: `args[0]` is the interface `Type`, result is `IAdapterFactory`. The strategy closes over a `ConcurrentDictionary<Type, IAdapterFactory>` and uses `GetOrAdd`. Intended for the root or game-layer scope. |
 | `GameItemPropertySetting` | `ICommand` returned by the standard setter strategy: writes `gameItem[key] = value`. |
 | `RegisterIoCDependencyAdapter` | Constructor `(Type interfaceType)`. Registers in the current scope: the adapter key, and for every property a getter key and, if writable, a setter key. Getter strategy is the `[Dependency]` method when one matches, otherwise the standard dictionary read. |
-| `RegisterIoCDependencyCommandWithAdapter` | Constructor `(string dependencyName, Type commandType)`. Registers `dependencyName` → command built from `Ioc.Resolve<object>("Adapters.<InterfaceName>", args)`. The constructor call is a delegate compiled once from an expression tree, so there is no reflection per resolve. Does not register the adapter itself, so two commands can share one interface. |
+| `RegisterIoCDependencyCommandWithAdapter` (superseded: now uses a generated command factory, see `D-008`) | Constructor `(string dependencyName, Type commandType)`. Registers `dependencyName` → command built from `Ioc.Resolve<object>("Adapters.<InterfaceName>", args)`. The constructor call is a delegate compiled once from an expression tree, so there is no reflection per resolve. Does not register the adapter itself, so two commands can share one interface. |
 
 ### Rules fixed by this spec
 * `[Dependency]` attributes are collected from all loaded assemblies, so a plugin can supply a strategy for an interface it does not own. Two attributes for the same interface and property → `InvalidOperationException`.
@@ -88,13 +88,41 @@ The generated source is assembled from four text fragments in `SpaceBattle/Space
 * `RegisterIoCDependencyAdapterTemplates(directory)` reads all four files, then registers their text. A missing file or directory fails before anything is registered, with the .NET I/O exception naming the path. The parameterless constructor uses `Adapters/Templates` next to the assembly.
 * `RegisterIoCDependencyAdapterFactory` executes `RegisterIoCDependencyAdapterTemplates()` before registering `"Adapters.Factory"`.
 * `AdapterSourceBuilder` keeps its validation and type-name rendering; it resolves the four templates from IoC in the current scope, renders one property fragment per property with a getter and/or setter fragment, and substitutes them into the class fragment.
-* `AdapterFactoryCompiler.Compile(source)` returns an instance of the single concrete class implementing `IAdapterFactory` in the compiled assembly, or throws `InvalidOperationException` listing the classes found; `AdapterDependencyNaming.FactoryTypeName` is removed.
+* `AdapterFactoryCompiler.Compile(source)` (now `GeneratedCodeCompiler.Compile<T>`, `D-008`) returns an instance of the single concrete class implementing `IAdapterFactory` in the compiled assembly, or throws `InvalidOperationException` listing the classes found; `AdapterDependencyNaming.FactoryTypeName` is removed.
 * Changing a template: edit the `.txt` file next to the built assembly (takes effect on the next process start) or the file in the repository (takes effect on the next build); or register another text under the key in a scope. The factory cache is shared by all scopes, so a scope's template is used only for interfaces not yet compiled anywhere in the process, and the resulting factory then serves every scope.
 
 ### Tests for templates
 * `RegisterIoCDependencyAdapterTemplates`: registers the four texts from the output folder; a directory missing one of the files throws an I/O exception and registers nothing; null directory → `ArgumentNullException`.
 * `AdapterSourceBuilder`: a class template registered in a child scope with another namespace appears in the output and still compiles into a working factory.
 * `AdapterFactoryCompiler`: source without a factory class, or with two → `InvalidOperationException`; an abstract factory class is not counted.
+
+## Generated command factories (`D-008`)
+
+A command is still hand-written; what is generated is its factory. For every command type registered through `RegisterIoCDependencyCommandWithAdapter`, the template `Adapters/Templates/CommandFactory.txt` (key `"Adapters.Template.CommandFactory"`, registered with the other templates) is rendered and compiled once into `<Command>Factory : ICommandFactory`:
+
+```csharp
+public global::App.ICommand Create(global::System.Collections.Generic.IDictionary<string, object> gameItem)
+{
+    return new {{CommandType}}(({{InterfaceType}})global::App.Ioc.Resolve<object>("{{AdapterKey}}", gameItem));
+}
+```
+
+| Component | Responsibility |
+| --- | --- |
+| `ICommandFactory` | `ICommand Create(IDictionary<string, object> gameItem)`; hand-written. |
+| `CommandFactorySourceBuilder` | Checks that the type implements `ICommand`, has exactly one public constructor and that it takes exactly one interface parameter (`ArgumentException` otherwise), then renders the template with `{{FactoryName}}`, `{{CommandType}}`, `{{InterfaceType}}`, `{{AdapterKey}}`. |
+| `RegisterIoCDependencyCommandFactory` | Registers `"Commands.Factory"`: command `Type` → `ICommandFactory`, cached per type by the registered strategy; executing the registration again in another scope starts a new cache. Needs the templates registered by `RegisterIoCDependencyAdapterFactory`. |
+| `GeneratedCodeCompiler` | Renamed from `AdapterFactoryCompiler`. `T Compile<T>(string source)` compiles the source, instantiates the single concrete class implementing `T` once, or throws `InvalidOperationException` listing the classes found. Used for both adapter and command factories. |
+| `RegisterIoCDependencyCommandWithAdapter` | Resolves `"Commands.Factory"` for its command type and registers its dependency name as `args => factory.Create((IDictionary<string, object>)args[0])`. The expression-tree delegate is removed. |
+
+Command types must be public, non-abstract and non-generic; other types are not rejected by the checks and fail at compilation with `InvalidOperationException`. A custom adapter strategy receives only the game item, not the remaining resolve arguments.
+
+The IoC registration itself is not generated: it is one generic line, and a generated registration class would need the dependency name passed by reflection at every registration (`D-008`, option 3).
+
+### Tests for command factories
+* `CommandFactorySourceBuilder`: each check → `ArgumentException`; output names the command, the interface and the adapter key.
+* `RegisterIoCDependencyCommandFactory`: same instance for the same command type; the factory creates the command over the adapter of the given game item.
+* `RegisterIoCDependencyCommandWithAdapter`: unsupported command types → `ArgumentException`; end to end through the generated factory.
 
 ## Detailed Implementation Plan
 
