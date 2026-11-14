@@ -74,25 +74,25 @@
 * **First resolve cost:** the first compilation for an interface takes hundreds of milliseconds. It happens at registration time, not during the game loop.
 * **Verified:** Roslyn 4.12.0 compiles and loads generated adapters on `net10.0`; 131 tests pass with 100% line and branch coverage.
 
-## Source templates (`D-007`)
+## Source templates (`D-007`, updated by `D-009`)
 
-The generated source is assembled from four text fragments in `SpaceBattle/SpaceBattle.Lib/Adapters/Templates/`, copied to the output folder next to `SpaceBattle.Lib.dll`:
+The generated source is assembled from two external text fragments in `SpaceBattle/SpaceBattle.Lib/Adapters/Templates/` and two built-in fragments registered in IoC:
 
 | File | IoC key | Placeholders |
 | --- | --- | --- |
 | `AdapterClass.txt` | `"Adapters.Template.Class"` | `{{InterfaceType}}`, `{{AdapterName}}`, `{{Properties}}` |
-| `AdapterProperty.txt` | `"Adapters.Template.Property"` | `{{PropertyType}}`, `{{PropertyName}}`, `{{Accessors}}` |
-| `AdapterGetter.txt` | `"Adapters.Template.Getter"` | `{{PropertyType}}`, `{{GetterKey}}` |
+| Built-in property fragment | `"Adapters.Template.Property"` | `{{PropertyType}}`, `{{PropertyName}}`, `{{Accessors}}` |
+| Built-in getter fragment | `"Adapters.Template.Getter"` | `{{PropertyType}}`, `{{GetterKey}}` |
 | `AdapterSetter.txt` | `"Adapters.Template.Setter"` | `{{SetterKey}}` |
 
-* `RegisterIoCDependencyAdapterTemplates(directory)` reads all four files, then registers their text. A missing file or directory fails before anything is registered, with the .NET I/O exception naming the path. The parameterless constructor uses `Adapters/Templates` next to the assembly.
+* `RegisterIoCDependencyAdapterTemplates(directory)` reads the class and setter files, then registers their text and the built-in property and getter fragments. A missing file or directory fails before anything is registered, with the .NET I/O exception naming the path. The parameterless constructor uses `Adapters/Templates` next to the assembly.
 * `RegisterIoCDependencyAdapterFactory` executes `RegisterIoCDependencyAdapterTemplates()` before registering `"Adapters.Factory"`.
-* `AdapterSourceBuilder` keeps its validation and type-name rendering; it resolves the four templates from IoC in the current scope, renders one property fragment per property with a getter and/or setter fragment, and substitutes them into the class fragment.
+* `AdapterSourceBuilder` keeps its validation and type-name rendering; it resolves the class, property, getter, and setter templates from IoC in the current scope, renders one property fragment per property with a getter and/or setter fragment, and substitutes them into the class fragment.
 * `AdapterFactoryCompiler.Compile(source)` (now `GeneratedCodeCompiler.Compile<T>`, `D-008`) returns an instance of the single concrete class implementing `IAdapterFactory` in the compiled assembly, or throws `InvalidOperationException` listing the classes found; `AdapterDependencyNaming.FactoryTypeName` is removed.
-* Changing a template: edit the `.txt` file next to the built assembly (takes effect on the next process start) or the file in the repository (takes effect on the next build); or register another text under the key in a scope. The factory cache is shared by all scopes, so a scope's template is used only for interfaces not yet compiled anywhere in the process, and the resulting factory then serves every scope.
+* Changing a template: edit the class or setter `.txt` file next to the built assembly (takes effect on the next process start) or in the repository (takes effect on the next build); built-in property and getter defaults require a library rebuild. Any template can still be overridden by registering another text under its key in a scope. The factory cache is shared by all scopes, so a scope's template is used only for interfaces not yet compiled anywhere in the process, and the resulting factory then serves every scope.
 
 ### Tests for templates
-* `RegisterIoCDependencyAdapterTemplates`: registers the four texts from the output folder; a directory missing one of the files throws an I/O exception and registers nothing; null directory → `ArgumentNullException`.
+* `RegisterIoCDependencyAdapterTemplates`: registers the class and setter texts from the output folder plus the built-in property and getter fragments; a directory missing one of the files throws an I/O exception and registers nothing; null directory → `ArgumentNullException`.
 * `AdapterSourceBuilder`: a class template registered in a child scope with another namespace appears in the output and still compiles into a working factory.
 * `AdapterFactoryCompiler`: source without a factory class, or with two → `InvalidOperationException`; an abstract factory class is not counted.
 
@@ -155,3 +155,6 @@ The IoC registration itself is not generated: it is one generic line, and a gene
   * `dotnet format SpaceBattle/SpaceBattle.sln --verify-no-changes`
   * `dotnet build SpaceBattle/SpaceBattle.sln --no-incremental`
   * `dotnet test SpaceBattle/SpaceBattle.sln --collect:"XPlat Code Coverage"` (`line-rate="1"` and `branch-rate="1"`)
+
+### Template storage update (D-009)
+`AdapterProperty.txt` and `AdapterGetter.txt` are represented as built-in template strings registered under `Adapters.Template.Property` and `Adapters.Template.Getter`. They remain overridable through IoC, while their default text now ships with `SpaceBattle.Lib`; changing those defaults requires rebuilding the library. The class, setter, and command factory templates remain external text files.
