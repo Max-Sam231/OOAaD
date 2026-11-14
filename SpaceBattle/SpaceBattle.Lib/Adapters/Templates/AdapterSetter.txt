@@ -1,0 +1,1 @@
+            set { global::App.Ioc.Resolve<global::App.ICommand>("{{SetterKey}}", _gameItem, value).Execute(); }

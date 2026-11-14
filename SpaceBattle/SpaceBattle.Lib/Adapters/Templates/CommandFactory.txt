@@ -1,0 +1,10 @@
+namespace SpaceBattle.Generated
+{
+    public class {{FactoryName}} : global::SpaceBattle.Lib.ICommandFactory
+    {
+        public global::App.ICommand Create(global::System.Collections.Generic.IDictionary<string, object> gameItem)
+        {
+            return new {{CommandType}}(({{InterfaceType}})global::App.Ioc.Resolve<object>("{{AdapterKey}}", gameItem));
+        }
+    }
+}

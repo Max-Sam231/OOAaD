@@ -1,0 +1,22 @@
+namespace SpaceBattle.Generated
+{
+    public class {{AdapterName}} : {{InterfaceType}}
+    {
+        private readonly global::System.Collections.Generic.IDictionary<string, object> _gameItem;
+
+        public {{AdapterName}}(global::System.Collections.Generic.IDictionary<string, object> gameItem)
+        {
+            _gameItem = gameItem;
+        }
+
+{{Properties}}
+    }
+
+    public class {{AdapterName}}Factory : global::SpaceBattle.Lib.IAdapterFactory
+    {
+        public object Create(global::System.Collections.Generic.IDictionary<string, object> gameItem)
+        {
+            return new {{AdapterName}}(gameItem);
+        }
+    }
+}
