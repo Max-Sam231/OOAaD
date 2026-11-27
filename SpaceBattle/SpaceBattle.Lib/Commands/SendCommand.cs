@@ -9,8 +9,8 @@ namespace SpaceBattle.Lib
 
         public SendCommand(ICommand command, ICommandReceiver receiver)
         {
-            _command = command;
-            _receiver = receiver;
+            _command = command ?? throw new ArgumentNullException(nameof(command));
+            _receiver = receiver ?? throw new ArgumentNullException(nameof(receiver));
         }
         public void Execute()
         {

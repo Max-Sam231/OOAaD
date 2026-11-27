@@ -490,3 +490,4 @@ $RECYCLE.BIN/
 code-coverage-results.md
 .env.*
 !.env.example
+контекст/

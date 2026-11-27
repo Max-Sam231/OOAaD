@@ -122,12 +122,13 @@ namespace SpaceBattle.Test
             var gameItem = new Dictionary<string, object>
             {
                 ["Position"] = new Vector(1, 2),
-                ["Velocity"] = new Vector(3, 4),
+                ["Angle"] = new Angle(0, 8),
+                ["Speed"] = 3,
             };
 
             Ioc.Resolve<ICommand>("Commands.Move", gameItem).Execute();
 
-            Assert.Equal(new Vector(4, 6), gameItem["Position"]);
+            Assert.Equal(new Vector(4, 2), gameItem["Position"]);
         }
     }
 }

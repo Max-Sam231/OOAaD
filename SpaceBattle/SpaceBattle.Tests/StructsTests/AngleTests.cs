@@ -119,5 +119,62 @@ namespace SpaceBattle.Tests
 
             Assert.True(result);
         }
+
+        [Fact]
+        public void TwoAngles_DifferentDenominators_DoNotMutateEachOther()
+        {
+            var first = new Angle(1, 8);
+            var second = new Angle(1, 16);
+
+            Assert.Equal(8, first.Denominator);
+            Assert.Equal(16, second.Denominator);
+            Assert.Equal("(1, 8)", first.ToString());
+            Assert.Equal("(1, 16)", second.ToString());
+        }
+
+        [Fact]
+        public void Add_DifferentDenominators_ThrowsArgumentException()
+        {
+            var first = new Angle(1, 8);
+            var second = new Angle(1, 16);
+
+            Assert.Throws<ArgumentException>(() => first + second);
+        }
+
+        [Fact]
+        public void Equals_DifferentDenominators_ReturnsFalse()
+        {
+            var first = new Angle(1, 8);
+            var second = new Angle(1, 16);
+
+            Assert.False(first.Equals(second));
+            Assert.False(first == second);
+            Assert.True(first != second);
+            Assert.False(first.Equals((object)second));
+        }
+
+        [Fact]
+        public void DefaultAngle_HasDefaultDenominatorAndZeroNumerator()
+        {
+            Angle angle = default;
+            var explicitZero = new Angle(0, 8);
+
+            Assert.Equal(0, angle.Numerator);
+            Assert.Equal(8, angle.Denominator);
+            Assert.Equal(0.0, (double)angle, 5);
+            Assert.Equal(new Angle(1, 8), angle + new Angle(1, 8));
+            Assert.Equal("(0, 8)", angle.ToString());
+            Assert.True(angle.Equals(explicitZero));
+            Assert.Equal(explicitZero.GetHashCode(), angle.GetHashCode());
+        }
+
+        [Fact]
+        public void Add_LargeDenominators_DoesNotOverflowInt()
+        {
+            var first = new Angle(1_500_000_000, 2_000_000_000);
+            var second = new Angle(1_500_000_000, 2_000_000_000);
+
+            Assert.Equal(new Angle(1_000_000_000, 2_000_000_000), first + second);
+        }
     }
 }

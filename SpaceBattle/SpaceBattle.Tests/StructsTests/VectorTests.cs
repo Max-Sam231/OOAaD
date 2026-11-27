@@ -76,10 +76,12 @@ namespace SpaceBattle.Tests
         public void GetHashCode_ReturnsConsistentValue()
         {
             var v1 = new Vector(1, 2, 3);
+            var v2 = new Vector(1, 2, 3);
 
             var hashCode = v1.GetHashCode();
 
             Assert.NotEqual(0, hashCode);
+            Assert.Equal(hashCode, v2.GetHashCode());
         }
 
         [Fact]
@@ -195,6 +197,59 @@ namespace SpaceBattle.Tests
             var v = new Vector(1, 2, 3);
 
             Assert.Throws<IndexOutOfRangeException>(() => v[3]);
+        }
+
+        [Fact]
+        public void Constructor_MutatingInputArray_DoesNotAffectVector()
+        {
+            var coordinates = new[] { 1, 2 };
+            var v = new Vector(coordinates);
+
+            coordinates[0] = 99;
+
+            Assert.Equal(1, v[0]);
+            Assert.Equal(2, v[1]);
+            Assert.Equal(2, v.Dimension);
+        }
+
+        [Fact]
+        public void Constructor_EmptyArray_HasZeroDimension()
+        {
+            var v = new Vector(Array.Empty<int>());
+
+            Assert.Equal(0, v.Dimension);
+        }
+
+        [Fact]
+        public void Add_NullOperand_ThrowsArgumentNullException()
+        {
+            var v = new Vector(1, 2);
+
+            Assert.Throws<ArgumentNullException>(() => null! + v);
+            Assert.Throws<ArgumentNullException>(() => v + null!);
+        }
+
+        [Fact]
+        public void Equals_DifferentDimensions_ReturnsFalse()
+        {
+            var v1 = new Vector(1, 2);
+            var v2 = new Vector(1, 2, 3);
+
+            Assert.False(v1.Equals(v2));
+        }
+
+        [Fact]
+        public void EqualsObject_VectorAndNonVector_ReturnsExpected()
+        {
+            var v1 = new Vector(1, 2);
+            object same = new Vector(1, 2);
+            object different = new Vector(1, 3);
+            object nonVector = "text";
+
+            Assert.True(v1.Equals(same));
+            Assert.False(v1.Equals(different));
+            Assert.False(v1.Equals(nonVector));
+            Assert.False(v1.Equals((object?)null));
         }
     }
 }

@@ -2,38 +2,51 @@ using System;
 
 namespace SpaceBattle.Lib
 {
-    public struct Angle : IEquatable<Angle>
+    public readonly struct Angle : IEquatable<Angle>
     {
-        public static int Denominator { get; set; } = 8;
+        private const int DefaultDenominator = 8;
+        private readonly int _denominator;
 
         public int Numerator { get; }
 
-        public Angle(int numerator, int denominator = 8)
+        public int Denominator => _denominator == 0 ? DefaultDenominator : _denominator;
+
+        public Angle(int numerator, int denominator = DefaultDenominator)
         {
             if (denominator <= 0)
-                throw new ArgumentException();
+            {
+                throw new ArgumentException("Denominator must be positive.", nameof(denominator));
+            }
 
-            Denominator = denominator;
+            _denominator = denominator;
 
-            int n = numerator % Denominator;
-            if (n < 0) n += Denominator;
+            int n = numerator % denominator;
+            if (n < 0)
+            {
+                n += denominator;
+            }
 
             Numerator = n;
         }
 
         public static Angle operator +(Angle a, Angle b)
         {
-            return new Angle(a.Numerator + b.Numerator, Denominator);
+            if (a.Denominator != b.Denominator)
+            {
+                throw new ArgumentException("Cannot add angles with different denominators.");
+            }
+
+            return new Angle((int)(((long)a.Numerator + b.Numerator) % a.Denominator), a.Denominator);
         }
 
         public static implicit operator double(Angle angle)
         {
-            return 2 * Math.PI * angle.Numerator / Denominator;
+            return 2 * Math.PI * angle.Numerator / angle.Denominator;
         }
 
         public bool Equals(Angle other)
         {
-            return Numerator == other.Numerator;
+            return Numerator == other.Numerator && Denominator == other.Denominator;
         }
 
         public override bool Equals(object? obj)
@@ -43,7 +56,7 @@ namespace SpaceBattle.Lib
 
         public override int GetHashCode()
         {
-            return Numerator.GetHashCode();
+            return HashCode.Combine(Numerator, Denominator);
         }
 
         public static bool operator ==(Angle left, Angle right)
