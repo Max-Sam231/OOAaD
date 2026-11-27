@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SpaceBattle.Lib\SpaceBattle.Lib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="core">
+      <HintPath>..\Common\core.dll</HintPath>
+    </Reference>
+    <Reference Include="scopes">
+      <HintPath>..\Common\scopes.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
