@@ -1,11 +1,6 @@
-# SpaceBattle (ООАиП)
+# SpaceBattle (ООАиП) — Инструкция по работе с харнессом
 
-Исполнители:
-- Марютин Максим
-- Чвалюк Иван
-- Зюзин Дмитрий
-
-Репозиторий настроен так, чтобы все участники команды (в Antigravity) работали по единым правилам, архитектурным инвариантам курса и автоматическим проверкам без внешней настройки. Снимок кода 1-го семестра сохранён в ветке `archive`.
+Репозиторий настроен так, чтобы все участники команды (в Antigravity) работали по единым правилам, архитектурным инвариантам курса и автоматическим проверкам без внешней настройки.
 
 ---
 
@@ -22,7 +17,7 @@
 
 ## 2. Полный цикл разработки фичи
 
-Никакой код в `SpaceBattle/` не пишется «сразу сходу» — `guard-gate` заблокирует правку `.cs` до появления решения и спеки. Исключений и обходных коридоров нет:
+Никакой код в `src/` и `tests/` не пишется «сразу сходу» — `guard-gate` заблокирует правку `.cs` до появления решения и спеки. Исключений и обходных коридоров нет:
 
 ### Этап 1. Разбор вводной и фиксация решений (`egm-brainstorm` → `docs/DECISIONS.md`)
 * **Когда запускать:** пришла новая задача/вводная с ПЗ, фото доски или неясные требования.
@@ -33,7 +28,7 @@
 ### Этап 2. Написание и стресс-тест спеки (`egm-draft` → `egm-review` → `egm-resolve`)
 * **Написать спеку (`egm-draft`):**
   > «Запусти `egm-draft` по решению `D-NNN` и брифу».
-  Собирает пошагово `.dev/egm/design_draft.md` и сохраняет утверждённую спеку в `docs/designs/<slug>.md` (с точными ключами `IoC`, списком `Create`/`Modify` файлов и тест-планом на **100% покрытие**). После этого `guard-gate` открывает доступ к `.cs` файлам.
+  Собирает пошагово `.dev/egm/design_draft.md` и сохраняет утверждённую спеку в `docs/designs/<slug>.md` (с точными ключами `IoC`, списком `Create`/`Modify` файлов и тест-планом на **100% покрытие**). После этого `guard-gate` открывает доступ к `src/` и `tests/`.
 * **Прогнать независимую критику спеки (`egm-review`):**
   > «Прогони `egm-review` для `docs/designs/<slug>.md`».
   В изолированных чистых контекстах (без памяти о диалоге автора) спеку атакуют 4 Goldfish-персоны, отчёт ложится в `.dev/egm/goldfish_findings.md`.
@@ -69,7 +64,7 @@
 
 ### Автоматические хуки и CI
 * **`guard-gate.py` (`PreToolUse`):** блокирует опасные команды, `git add .`, авто-коммиты/пуши без явной просьбы, несанкционированные правки самого харнесса, удаление старых записей из `docs/DECISIONS.md` и написание `.cs` до фиксации `D-NNN` + спеки.
-* **`ooand-lint-gate.py` (`PostToolUse` + `PostInvocation`):** мгновенно ловит комментарии (`//`, `/* */`, `///`) в `.cs`, прямой `new` в прикладном коде, `switch`, `IDictionary` в командах, `-able` интерфейсы, `Activator.CreateInstance` вне фабрики и обращение `Game` к `IoC.Scope.*`.
+* **`ooand-lint-gate.py` (`PostToolUse` + `PostInvocation`):** мгновенно ловит комментарии (`//`, `/* */`, `///`) в `.cs`, прямой `new` в `src/`, `switch`, `IDictionary` в командах, `-able` интерфейсы, `Activator.CreateInstance` вне фабрики и обращение `Game` к `IoC.Scope.*`.
 * **`stop-verify-gate.py` (`Stop`):** не даёт агенту завершить ход при правках `.cs`, если не прошли линтер, `dotnet build`, `dotnet test`, покрытие `< 100%` по строкам/веткам, упало число тестов или нет свежего `verdict: CLEAN` в `.dev/.last-review.md`.
 * **`scripts/githooks/pre-push` и `.github/workflows/ci.yaml`:** локально перед `git push` и в GitHub Actions проверяют линтер, `dotnet format --verify-no-changes`, сборку и **100% line/branch coverage**.
 
@@ -77,13 +72,13 @@
 
 ## 4. Частые правила, о которых важно помнить
 
-* **0 комментариев в C#:** любые `//`, `/* */`, `///` в коде и тестах считаются дефектом (`INV-8`).
+* **0 комментариев в C#:** любые `//`, `/* */`, `///` в `src/` и `tests/` считаются дефектом (`INV-8`).
 * **100% покрытие:** учитываются и строки (`line`), и ветки (`branch`) в Coverlet.
 * **Никаких авто-коммитов:** агент делает `git commit` / `git push` только по твоей прямой команде в сообщении, с точечным `git add <files>`.
 * **Быстрая локальная проверка руками в любое время:**
   ```bash
   python3 .agents/hooks/ooand-lint-gate.py --check-all .
-  dotnet format SpaceBattle/SpaceBattle.sln --verify-no-changes
-  dotnet build SpaceBattle/SpaceBattle.sln --no-incremental
-  dotnet test SpaceBattle/SpaceBattle.sln --collect:"XPlat Code Coverage"
+  dotnet format --verify-no-changes
+  dotnet build --no-incremental
+  dotnet test --collect:"XPlat Code Coverage"
   ```

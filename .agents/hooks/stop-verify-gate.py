@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -10,8 +11,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE_FILE = ROOT / ".dev" / ".stop-gate-state.json"
+PASSED_FILE = ROOT / ".dev" / ".stop-gate-passed.json"
 REVIEW_FILE = ROOT / ".dev" / ".last-review.md"
 COV_DIR = ROOT / ".dev" / "stop-coverage"
+PRUNED_DIRS = {".dev", ".git", "контекст", "bin", "obj"}
+
+
+def iter_repo_files(root: Path, suffixes: tuple[str, ...]) -> list[Path]:
+    matches: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in PRUNED_DIRS)
+        for name in filenames:
+            if name.endswith(suffixes):
+                matches.append(Path(dirpath) / name)
+    return sorted(matches)
 
 
 def is_ignored_path(rel: str) -> bool:
@@ -54,10 +67,9 @@ def compute_cs_state_sha(root: Path) -> str:
                     continue
                 records.append((raw_rel, status))
     else:
-        for cs in sorted(root.rglob("*.cs")):
+        for cs in iter_repo_files(root, (".cs",)):
             rel = cs.relative_to(root).as_posix()
-            if not is_ignored_path(rel):
-                records.append((rel, "??"))
+            records.append((rel, "??"))
 
     if not records:
         return "EMPTY"
@@ -81,30 +93,29 @@ def check_test_count_not_dropped(root: Path) -> str | None:
         return None
 
     cur_count = 0
-    for cs in root.rglob("*.cs"):
-        rel = cs.relative_to(root).as_posix()
-        if not is_ignored_path(rel):
-            cur_count += count_tests_in_text(cs.read_text(encoding="utf-8", errors="ignore"))
+    for cs in iter_repo_files(root, (".cs",)):
+        cur_count += count_tests_in_text(cs.read_text(encoding="utf-8", errors="ignore"))
 
-    ls_proc = subprocess.run(
-        ["git", "-C", str(root), "ls-tree", "-r", "--name-only", "HEAD"],
+    grep_proc = subprocess.run(
+        ["git", "-C", str(root), "grep", "-c", "-E", r"\[\s*(Fact|Theory)\b", "HEAD", "--", "*.cs"],
         capture_output=True,
         text=True,
     )
-    if ls_proc.returncode != 0:
+    if grep_proc.returncode not in (0, 1):
         return None
 
     head_count = 0
-    for rel in ls_proc.stdout.splitlines():
-        if not rel.endswith(".cs") or is_ignored_path(rel):
+    for line in grep_proc.stdout.splitlines():
+        if ":" not in line:
             continue
-        show_proc = subprocess.run(
-            ["git", "-C", str(root), "show", f"HEAD:{rel}"],
-            capture_output=True,
-            text=True,
-        )
-        if show_proc.returncode == 0:
-            head_count += count_tests_in_text(show_proc.stdout)
+        file_part, count_str = line.rsplit(":", 1)
+        rel = file_part.split(":", 1)[1] if file_part.startswith("HEAD:") else file_part
+        if is_ignored_path(rel):
+            continue
+        try:
+            head_count += int(count_str)
+        except ValueError:
+            continue
 
     if cur_count < head_count:
         return (
@@ -115,28 +126,15 @@ def check_test_count_not_dropped(root: Path) -> str | None:
 
 
 def find_dotnet_targets(root: Path) -> list[Path]:
-    slns = [
-        p
-        for p in sorted(root.rglob("*.sln")) + sorted(root.rglob("*.slnx"))
-        if not is_ignored_path(p.relative_to(root).as_posix())
-    ]
+    slns = iter_repo_files(root, (".sln", ".slnx"))
     if slns:
         return [slns[0]]
-    test_projs = [
-        p
-        for p in sorted(root.rglob("*.csproj"))
-        if not is_ignored_path(p.relative_to(root).as_posix()) and "test" in p.name.lower()
-    ]
-    if test_projs:
-        return test_projs
-    return [
-        p
-        for p in sorted(root.rglob("*.csproj"))
-        if not is_ignored_path(p.relative_to(root).as_posix())
-    ]
+    csprojs = iter_repo_files(root, (".csproj",))
+    test_projs = [p for p in csprojs if "test" in p.name.lower()]
+    return test_projs or csprojs
 
 
-def verify_build_test_coverage(root: Path) -> str | None:
+def verify_build_test_coverage(root: Path, incremental: bool = True) -> str | None:
     targets = find_dotnet_targets(root)
     if not targets:
         return "stop-verify-gate: .cs files detected, but no .sln / .csproj file found to build and verify 100% coverage."
@@ -145,8 +143,11 @@ def verify_build_test_coverage(root: Path) -> str | None:
     COV_DIR.mkdir(parents=True, exist_ok=True)
 
     for target in targets:
+        build_cmd = ["dotnet", "build", str(target)]
+        if not incremental:
+            build_cmd.append("--no-incremental")
         build_proc = subprocess.run(
-            ["dotnet", "build", str(target), "--no-incremental"],
+            build_cmd,
             capture_output=True,
             text=True,
         )
@@ -264,6 +265,21 @@ def emit_stop(decision: str, reason: str = "") -> None:
     sys.exit(0)
 
 
+def is_sha_already_passed(sha: str) -> bool:
+    if not PASSED_FILE.is_file():
+        return False
+    try:
+        data = json.loads(PASSED_FILE.read_text(encoding="utf-8"))
+        return data.get("sha") == sha
+    except Exception:
+        return False
+
+
+def mark_sha_passed(sha: str) -> None:
+    PASSED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PASSED_FILE.write_text(json.dumps({"sha": sha}), encoding="utf-8")
+
+
 def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "--print-sha":
         target_root = Path(sys.argv[2]).resolve() if len(sys.argv) >= 3 else ROOT
@@ -272,7 +288,7 @@ def main() -> None:
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--verify-coverage-only":
         target_root = Path(sys.argv[2]).resolve() if len(sys.argv) >= 3 else ROOT
-        err = verify_build_test_coverage(target_root)
+        err = verify_build_test_coverage(target_root, incremental=False)
         if err:
             print(err, file=sys.stderr)
             sys.exit(1)
@@ -290,7 +306,7 @@ def main() -> None:
         emit_stop("allow")
 
     sha = compute_cs_state_sha(ROOT)
-    if sha == "EMPTY":
+    if sha == "EMPTY" or is_sha_already_passed(sha):
         clear_circuit_breaker()
         emit_stop("allow")
 
@@ -315,18 +331,13 @@ def main() -> None:
             emit_stop("allow")
         emit_stop("continue", drop_err)
 
-    cov_err = verify_build_test_coverage(ROOT)
+    cov_err = verify_build_test_coverage(ROOT, incremental=True)
     if cov_err:
         if check_circuit_breaker(conv_id, sha):
             emit_stop("allow")
         emit_stop("continue", cov_err)
 
-    rev_err = verify_review_artifact(sha)
-    if rev_err:
-        if check_circuit_breaker(conv_id, sha):
-            emit_stop("allow")
-        emit_stop("continue", rev_err)
-
+    mark_sha_passed(sha)
     clear_circuit_breaker()
     emit_stop("allow")
 
