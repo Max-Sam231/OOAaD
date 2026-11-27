@@ -40,7 +40,7 @@ namespace SpaceBattle.Lib
 
         private Func<object[], object> GetterStrategy(string propertyName)
         {
-            var declared = AppDomain.CurrentDomain.GetAssemblies()
+            var declared = Ioc.Resolve<ScopedAssemblyCatalog>("Adapters.Assemblies").Assemblies
                 .SelectMany(assembly => assembly.GetCustomAttributes<DependencyAttribute>())
                 .Where(dependency => dependency.InterfaceType == _interfaceType && dependency.PropertyName == propertyName)
                 .ToList();

@@ -1,5 +1,8 @@
+using System.Runtime.Loader;
 using App;
 using App.Scopes;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using SpaceBattle.Lib;
 using Xunit;
 
@@ -157,6 +160,50 @@ namespace SpaceBattle.Test
         {
             Assert.Throws<ArgumentNullException>(
                 () => new GameItemPropertySetting(new Dictionary<string, object>(), null!, 10));
+        }
+
+        [Fact]
+        public void Compile_WithNullTargetLoadContextOrReferences_ThrowsArgumentNullException()
+        {
+            var compiler = new GeneratedCodeCompiler();
+            var references = ScopedAssemblyCatalogFactory.CreateDefault().MetadataReferences;
+
+            Assert.Throws<ArgumentNullException>(() => compiler.Compile<IAdapterFactory>("class X {}", null!, references));
+            Assert.Throws<ArgumentNullException>(() => compiler.Compile<IAdapterFactory>("class X {}", AssemblyLoadContext.Default, null!));
+        }
+
+        [Fact]
+        public void FactoryRegistrations_WithNullCatalog_ThrowArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new RegisterIoCDependencyAdapterFactory(null!));
+            Assert.Throws<ArgumentNullException>(() => new RegisterIoCDependencyCommandFactory(null!));
+        }
+
+        [Fact]
+        public void ScopedAssemblyCatalogFactory_FromAssemblies_SkipsInMemoryAssembliesWithEmptyLocation()
+        {
+            var compilation = CSharpCompilation.Create(
+                "InMemoryTestAssembly." + Guid.NewGuid().ToString("N"),
+                [CSharpSyntaxTree.ParseText("public class EmptyLocationMarker { }")],
+                ScopedAssemblyCatalogFactory.CreateDefault().MetadataReferences,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            using var stream = new MemoryStream();
+            var emitResult = compilation.Emit(stream);
+            Assert.True(emitResult.Success);
+            stream.Seek(0, SeekOrigin.Begin);
+
+            var loadContext = new AssemblyLoadContext("InMemoryTestAlc." + Guid.NewGuid().ToString("N"), isCollectible: true);
+            var inMemoryAssembly = loadContext.LoadFromStream(stream);
+            var diskAssembly = typeof(Vector).Assembly;
+
+            Assert.Equal(string.Empty, inMemoryAssembly.Location);
+            Assert.NotEmpty(diskAssembly.Location);
+
+            var catalog = ScopedAssemblyCatalogFactory.FromAssemblies([diskAssembly, inMemoryAssembly]);
+
+            Assert.Equal(2, catalog.Assemblies.Count);
+            Assert.Single(catalog.MetadataReferences);
         }
     }
 }
