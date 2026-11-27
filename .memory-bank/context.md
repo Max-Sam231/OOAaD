@@ -4,7 +4,7 @@
 Educational server-side space-combat game engine for the Object-Oriented Analysis and Design course (2nd semester). Game rules, entity types, composite actions, and atomic operation ordering (`BurnFuel before Move`) are constructed dynamically via registrations inside `IoC` scopes. 1st-semester state is preserved on branch `archive`.
 
 * **Team:** Maxim Maryutin, Ivan Chvalyuk, Dmitry Zyuzin.
-* **Stack:** C# / `.NET 10` (`SpaceBattle/SpaceBattle.sln`: `SpaceBattle.Lib`, `SpaceBattle.Tests`), xUnit, NSubstitute, Coverlet (**mandatory threshold: `100%` line and `100%` branch**).
+* **Stack:** C# / `.NET 10` (`SpaceBattle/SpaceBattle.sln`: `SpaceBattle.Lib`, `SpaceBattle.Server`, `SpaceBattle.Tests`), xUnit, NSubstitute, Coverlet (**mandatory threshold: `100%` line and `100%` branch**).
 
 ## 2. Closed Binary Contracts (`SpaceBattle/Common/`)
 Binaries from the base course delivery (not decompiled or modified):
@@ -67,7 +67,11 @@ Binaries from the base course delivery (not decompiled or modified):
   * `ProxyScopeFactory` bypasses `scopes.dll` Catch-22 (`IoC.Scope.Create.Empty` + direct `"IoC.Scope.Parent"` → `holder.Current`); `ScopeParentHolder` swaps `GameBaseScope_vN` lock-free via `Volatile.Read/Write`.
   * `PluginLoaderFactory` loads `*.dll` via collectible `AssemblyLoadContext` (`LoadFromStream`, two-pass load then discover `Register* : ICommand`), `GameBaseScopeBuilder` allows plugin overrides of built-in L2B keys via temporary upsert `"IoC.Register"` removed in `finally`, and `GeneratedCodeCompiler`/`RegisterIoCDependencyAdapterFactory`/`RegisterIoCDependencyCommandFactory`/`RegisterIoCDependencyAdapter` isolate per-version `"Adapters.Assemblies"` and compile into the target type's `ALC`.
 * **Snapshot codecs (`SpaceBattle.Lib/Transfer/`):** `RegisterIoCDependencySnapshotCodecs` serializes per-instance `Angle.Denominator` and uses a `for` loop (0 LINQ) for `Vector`. `SendCommand` validates non-null `command` and `receiver` in its constructor.
-* **Not in `SpaceBattle.Lib` yet (Specs `03`–`05` in `docs/designs/`):** `SpaceBattle.Server` Kestrel WebSocket endpoint & $O(1)$ router (`03`), deadlock-free `GameProxy`, 2-process migration, `ServerSnapshot`, and full 2PC transactions (`04`), collision matrix + fuel/destroy/victory gameplay + E2E (`05`).
+* **Endpoint routing, step validation & Kestrel WebSocket host (`SpaceBattle.Lib/Endpoint/`, `SpaceBattle.Server/`, `D-013`, `D-019`, `D-020`, `D-021`, spec `docs/designs/03-server-endpoint-routing-and-step.md`):**
+  * L2A (`RegisterIoCDependencyEndpoint`): `"Server.Router"` (`GameRouter`), `"Server.Ingress.Paused"`, `"Server.Thread.TryEnqueue"`, `"Endpoint.Message.Decoder"` (`CommandMessageFactory`), `"Endpoint.Route.Create"` (`ThreadGameEndpointRoute`), `"Endpoint.Target.Local.Create"` (`LocalEndpointGameSending` deferring `"Commands.InterpretMessage"` into `GameScope`).
+  * L2B (`RegisterIoCDependencyEndpointGameBase`): `"Exception.Handle"`, `"Server.Connections"` (`GameConnectionRegistry`), `"Commands.InterpretMessage"`, `"Game.Item.Owner"`, `"Game.Message.{Authorize,Command}"`, `"Game.State.{Serialize,Broadcast}"`. L4 (`RegisterIoCDependencyGameStep`): `"Game.Step.{State,Current,Validate,Advance}"`.
+  * `SpaceBattle.Server`: expression-bodied `Program.Main` → `ServerBootstrap` (isolated L2A `serverScope` + L2B `GameBaseScope_vN` at `depth == 4`, `--plugins-dir`, direct `/health`, `/ws`, `/admin/shutdown`, `/admin/hot-reload`), `WebSocketMessageLoop` (`maxMessageBytes + 1`, `Close` mid-fragment, linked CTS, `finally` cleanup), `ChannelClientMessageSending`, `ServerExceptionRecording`.
+* **Not in `SpaceBattle.Lib` yet (Specs `04`–`05` in `docs/designs/`):** deadlock-free `GameProxy`, 2-process migration, `ServerSnapshot`, and full 2PC transactions (`04`), collision matrix + fuel/destroy/victory gameplay + E2E (`05`).
 
 ## 4. Harness & Status
 * Architectural invariants (`INV-1..INV-9`): [`.agents/rules/ooand-invariants.md`](../.agents/rules/ooand-invariants.md) (`always_on`).
@@ -78,8 +82,9 @@ Binaries from the base course delivery (not decompiled or modified):
   * `origin/feature/IsCollision`, `origin/feature/collision-data-processor` — `QuadrantCollisionDetector` + 1000-object dataset; no open PR.
 * Harness merged into `main` on 2026-11-13 (PR #67). `.agents/hooks.json` uses tool names of another agent runtime (`run_command`, `replace_file_content`); under Claude Code the gates do not fire automatically — run them by hand (commands in `README.md`).
 * `main` is protected by ruleset `auto merge`: changes only via PR, 0 required approvals, required check `build-test-coverage` (strict).
-* Verified 2026-11-27 on `feature/spec-02-rules-and-hot-reload` (Spec `02`): 332 tests pass, `100%` line / `100%` branch, `ooand-lint-gate --check-all` 0 errors / 0 warnings, `dotnet format --verify-no-changes` clean, `spec-review` (`code-reviewer-qa`) `CLEAN`.
+* Verified 2026-11-27 on `feature/spec-03-server-endpoint` (Spec `03`): 383 tests pass, `100%` line (`2841/2841`) / `100%` branch (`660/660`) incl. `SpaceBattle.Server/Program.cs`, `ooand-lint-gate --check-all` 0 errors / 0 warnings, `dotnet format --verify-no-changes` clean, `spec-review` (`code-reviewer-qa`) `CLEAN`.
 * [x] Archived 1st-semester `main` to `archive` and deployed team harness in `main` (`D-001`).
 * [x] Remediated `ooand-lint-gate` & `dotnet format` violations in `SpaceBattle/` (`D-002`, `docs/designs/linter-compliance-cleanup.md`).
 * [x] Reconciled Fork A (`b0f65b0`) + Fork B (`dd1fe75`) + `docs/*` (`D-001..D-021`) and completed Day-0 Spec `01` (`docs/designs/01-reconciliation-and-value-types.md`, PR `#74`).
-* [x] Implemented Track A Spec `02` — declarative JSON rules, deterministic Kahn `"A before B"` `MacroCommand`, 4-level scope tree, and lock-free plugin hot-reload (`docs/designs/02-rules-and-scope-hot-reload.md`).
+* [x] Implemented Track A Spec `02` — declarative JSON rules, deterministic Kahn `"A before B"` `MacroCommand`, 4-level scope tree, and lock-free plugin hot-reload (`docs/designs/02-rules-and-scope-hot-reload.md`, PR `#75`).
+* [x] Implemented Track B Spec `03` — `SpaceBattle.Server` Kestrel WebSocket host, $O(1)$ routing, non-blocking step validation, and throughput benchmarks (`docs/designs/03-server-endpoint-routing-and-step.md`).
