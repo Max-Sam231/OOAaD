@@ -8,9 +8,19 @@ namespace SpaceBattle.Lib
     {
         public T Compile<T>(string source)
         {
-            var references = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(assembly => assembly.Location.Length > 0)
-                .Select(assembly => MetadataReference.CreateFromFile(assembly.Location));
+            return Compile<T>(
+                source,
+                AssemblyLoadContext.Default,
+                ScopedAssemblyCatalogFactory.CreateDefault().MetadataReferences);
+        }
+
+        public T Compile<T>(
+            string source,
+            AssemblyLoadContext targetLoadContext,
+            IEnumerable<MetadataReference> references)
+        {
+            ArgumentNullException.ThrowIfNull(targetLoadContext);
+            ArgumentNullException.ThrowIfNull(references);
 
             var compilation = CSharpCompilation.Create(
                 "SpaceBattle.Generated." + Guid.NewGuid().ToString("N"),
@@ -27,7 +37,7 @@ namespace SpaceBattle.Lib
             }
 
             stream.Seek(0, SeekOrigin.Begin);
-            var assembly = AssemblyLoadContext.Default.LoadFromStream(stream);
+            var assembly = targetLoadContext.LoadFromStream(stream);
 
             var factoryTypes = assembly.GetTypes()
                 .Where(type => type.IsClass && !type.IsAbstract && typeof(T).IsAssignableFrom(type))

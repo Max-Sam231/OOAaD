@@ -1,10 +1,24 @@
 using System.Collections.Concurrent;
+using System.Runtime.Loader;
 using App;
 
 namespace SpaceBattle.Lib
 {
     public class RegisterIoCDependencyCommandFactory : ICommand
     {
+        private readonly ScopedAssemblyCatalog _catalog;
+
+        public RegisterIoCDependencyCommandFactory()
+            : this(ScopedAssemblyCatalogFactory.CreateDefault())
+        {
+        }
+
+        public RegisterIoCDependencyCommandFactory(ScopedAssemblyCatalog catalog)
+        {
+            ArgumentNullException.ThrowIfNull(catalog);
+            _catalog = catalog;
+        }
+
         public void Execute()
         {
             var builder = new CommandFactorySourceBuilder();
@@ -16,7 +30,10 @@ namespace SpaceBattle.Lib
                 "Commands.Factory",
                 (Func<object[], object>)(args => factories.GetOrAdd(
                     (Type)args[0],
-                    type => compiler.Compile<ICommandFactory>(builder.Build(type))))
+                    type => compiler.Compile<ICommandFactory>(
+                        builder.Build(type),
+                        AssemblyLoadContext.GetLoadContext(type.Assembly)!,
+                        _catalog.MetadataReferences)))
             ).Execute();
         }
     }

@@ -8,7 +8,7 @@ namespace SpaceBattle.Lib
         {
             var cmd = Ioc.Resolve<ICommand>("IoC.Register", "Commands.Macro", (object[] args) =>
             {
-                var commands = (ICommand[])args[0];
+                var commands = ((IEnumerable<ICommand>)args[0]).ToArray();
                 return new MacroCommand(commands);
             });
 
