@@ -8,8 +8,19 @@ namespace SpaceBattle.Lib
         {
             var sorter = new TopologicalOrderBuilder();
             var parser = new GameRulesParserBuilder(sorter);
+            var textBuilder = new GameRulesTextBuilder();
 
             Register("Game.Rules.Parse", args => parser.Parse((string)args[0]));
+            Register(
+                "Game.Rules.TextToJson",
+                args => args.Length > 1
+                    ? textBuilder.Translate((string)args[0], (string)args[1])
+                    : textBuilder.Translate((string)args[0]));
+            Register(
+                "Game.Rules.ParseText",
+                args => parser.Parse(args.Length > 1
+                    ? textBuilder.Translate((string)args[0], (string)args[1])
+                    : textBuilder.Translate((string)args[0])));
             Register("Game.Rules.Apply", args => new RegisterGameRulesCommand((GameRulesConfig)args[0]));
             Register(
                 "Game.Rules.RegisterNamed",

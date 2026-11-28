@@ -288,3 +288,12 @@
   2. Modify `.agents/hooks/ooand-lint-gate.py` to carve out an exception for `Table`.
 * **Decision:** Option 1. Renaming preserves harness immutability (`AGENTS.md §3`), keeps CI green without hook drift, and clarifies the single-threaded per-thread receiver registry role.
 * **Consequences & Invariants:** Day-0 file is `SpaceBattle/SpaceBattle.Lib/Endpoint/IGameReceiverRegistry.cs` (`IGameReceiverRegistry`); Spec `03` implements `GameReceiverRegistry : IGameReceiverRegistry`. Existing `DECISIONS.md` entries `D-001..D-020` remain untouched (`INV-9`).
+
+## D-022 — Text-to-JSON Rules Translator (`GameRulesTextBuilder`) Over Canonical `game-rules.json` (2026-11-28)
+* **Status:** Accepted (`Extends D-011`)
+* **Context / Task Prompt:** The course instructor's concrete example specifies game rules as concise 4-clause Russian text lines (`"В игре есть Корабль, Ракета, Метеорит"`, `"Корабль может ДвигатьсяПоПрямой, Вращаться, Стрелять"`, `"ДвигатьсяПоПрямой включает Move, BurnFuel"`, `"BurnFuel до Move"`). Replacing `game-rules.json` directly would break `GameSnapshot` verbatim rule embedding (`D-011`, `D-014`) and `SnapshotValueCodecs` typed entity properties, whereas ignoring the text syntax leaves a gap against the instructor's rule-description format.
+* **Options Considered:**
+  1. **Option A (Chosen):** Add a single thin front-end translator file `GameRulesTextBuilder.cs` (in `SpaceBattle.Lib/Rules/`, exposing `"Game.Rules.TextToJson"` and `"Game.Rules.ParseText"`) that translates the 4-clause rule text into the canonical `game-rules.json` schema (`templates` with `"AllowedActions"` property via existing `System.String` codec, `entities: []`, `actions` with normalized `Commands.<Step>` names and `"<A> before <B>"` order constraints), keeping `GameRulesParserBuilder`, `GameRulesConfig`, and `GameSnapshot` untouched.
+  2. **Option B (Rejected):** Replace `game-rules.json` with a standalone text parser inside `GameRulesParserBuilder` (breaks typed `SnapshotValueCodecs` entity definitions, `collisions`, `victory_target`, and `GameSnapshot` JSON transport).
+* **Decision:** Adopt **Option A**.
+* **Consequences & Invariants:** Satisfies `INV-1`, `INV-2` (zero `switch`), `INV-3`, `INV-4`, `INV-8` (100% line/branch coverage), and `INV-9`. Adds 1 translator file (`GameRulesTextBuilder.cs`) + 1 test file (`GameRulesTextBuilderTests.cs`) to `docs/designs/02-rules-and-scope-hot-reload.md` without modifying `GameRulesParserBuilder` or `GameRulesConfig`.

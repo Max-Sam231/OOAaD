@@ -1,7 +1,7 @@
 # Спецификация `02`: Декларативные JSON-правила, топологический `MacroCommand`, 4-уровневые скоупы и Lock-Free Hot-Reload
 
 > **Статус:** Zero-Decision Delta Spec (Track A — поверх сведённой базы `origin/*` из Spec `01`)  
-> **Связанные решения (`docs/DECISIONS.md`):** [`D-010`](../DECISIONS.md), [`D-011`](../DECISIONS.md), [`D-012`](../DECISIONS.md), [`D-017`](../DECISIONS.md), [`D-018`](../DECISIONS.md), [`D-019`](../DECISIONS.md), [`D-020`](../DECISIONS.md)  
+> **Связанные решения (`docs/DECISIONS.md`):** [`D-010`](../DECISIONS.md), [`D-011`](../DECISIONS.md), [`D-012`](../DECISIONS.md), [`D-017`](../DECISIONS.md), [`D-018`](../DECISIONS.md), [`D-019`](../DECISIONS.md), [`D-020`](../DECISIONS.md), [`D-022`](../DECISIONS.md)  
 > **Архитектура и дорожная карта:** [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md), [`docs/ROADMAP.md`](../ROADMAP.md)  
 > **Инварианты:** `INV-1`, `INV-2`, `INV-3`, `INV-4`, `INV-5`, `INV-6`, `INV-7`, `INV-8`, `INV-9`
 
@@ -167,6 +167,19 @@
    - По завершении загрузки сущностей вызывает `Ioc.Resolve<ICommand>("Game.State.Reindex", maxId + 1).Execute()`, где `maxId` — максимальный `entity.Id` (в L2B по умолчанию no-op `"Commands.Empty"`, в L4 Spec `05` — индексация в `SectorGrid`, сдвиг `EntityIdGenerator` и пополнение `MatchState.Players`).
 8. Для совместимости с `RegisterIoCDependencyTransferableGame` (`"Game.Rules.<name>"`) команда `RegisterIoCDependencyGameRules` также предоставляет ключ `"Game.Rules.RegisterNamed"` (`(string ruleName, string rulesJson)` → регистрирует `"Game.Rules." + ruleName` в текущем `GameBaseScope` как команду `RegisterGameRulesCommand` для заранее распарсенного и провалидированного `GameRulesConfig`).
 
+#### 2.1.5. Транслятор текстового DSL правил в `game-rules.json` (`GameRulesTextBuilder`, `D-022`)
+Для прямого импорта текстовых правил в формате примера преподавателя добавляется один тонкий класс-транслятор `GameRulesTextBuilder` (infra-файл `Builder`), который преобразует 4-строчную грамматику в канонический `game-rules.json`, передаваемый далее в `GameRulesParserBuilder.Parse` без каких-либо изменений схемы `GameRulesConfig` или `GameSnapshot`:
+
+| Конструкция текстового DSL | Пример строки | Результирующее отображение в `game-rules.json` |
+| :--- | :--- | :--- |
+| `В игре есть <E1>, <E2>, ...` | `В игре есть Корабль, Ракета, Метеорит` | Добавляет шаблоны `templates["Корабль"]`, `templates["Ракета"]`, `templates["Метеорит"]` |
+| `<Entity> может <A1>, <A2>, ...` | `Корабль может ДвигатьсяПоПрямой, Вращаться, Стрелять` | Проверяет, что `<Entity>` объявлен в `templates`, объединяет без дубликатов список разрешённых действий (включая несколько строк `может` для одной сущности), записывает в `templates["<Entity>"]["AllowedActions"]` значение `{ "type": "System.String", "value": "ДвигатьсяПоПрямой,Вращаться,Стрелять" }` и гарантирует наличие каждого `<Ai>` в `actions` (если нет строки `включает`, подставляется атомарный шаг `[NormalizeStep(Ai)]`) |
+| `<Action> включает <S1>, <S2>, ...` | `ДвигатьсяПоПрямой включает Move, BurnFuel` | Задаёт `actions["<Action>"].steps = ["Commands.Move", "Commands.BurnFuel"]` (имя с точкой вида `Macro.X` / `Commands.X` сохраняется без префикса, иначе добавляется `Commands.`; повторный `включает` для того же `<Action>` выбрасывает `ArgumentException`) |
+| `<StepA> до <StepB>` | `BurnFuel до Move` | Буферизуется и сопоставляется после разбора всех строк: добавляет `"<NormA> before <NormB>"` в `order` каждого действия, в `steps` которого присутствуют оба шага (работает независимо от порядка строк `до` и `включает`; если ни одно действие не содержит пару — `ArgumentException`) |
+
+- Пустые строки игнорируются; любая непустая строка вне 4 конструкций, пустой вход, пустой элемент после запятой или неизвестная сущность в `может` выбрасывают `ArgumentException` (0 `switch`).
+- В выходной JSON всегда записываются `"version"`, `"templates"`, `"entities": []`, `"actions"` (сериализуется через `JsonSerializer.Serialize`). Далее вся валидация циклов, самопетель и сортировка Кана выполняется стандартным `GameRulesParserBuilder.Parse(json)`.
+
 ---
 
 ### 2.2. 4-уровневая иерархия скоупов (`depth = 4`, `INV-7`) и Lock-Free `ProxyScope` Hot-Reload (`D-012`)
@@ -280,6 +293,8 @@ flowchart TD
 | `"Game.Create.Scoped"` | 2A (`serverScope`) | `(ICommand innerCommand, ICommand gameInitializer)` | `ICommand` (`InSeparateScopeCommand`) | `RegisterIoCDependencyScopeHierarchy` |
 | `"Adapters.Assemblies"` | 2B (`GameBaseScope_vN`) | — | `ScopedAssemblyCatalog` | `RegisterIoCDependencyAdapterFactory` |
 | `"Game.Rules.Parse"` | 2B (`GameBaseScope_vN`) | `(string rulesJson)` | `GameRulesConfig` | `RegisterIoCDependencyGameRules` |
+| `"Game.Rules.TextToJson"` | 2B (`GameBaseScope_vN`) | `(string rulesText[, string version])` | `string` (JSON `game-rules.json`) | `RegisterIoCDependencyGameRules` |
+| `"Game.Rules.ParseText"` | 2B (`GameBaseScope_vN`) | `(string rulesText[, string version])` | `GameRulesConfig` | `RegisterIoCDependencyGameRules` |
 | `"Game.Rules.Apply"` | 2B (`GameBaseScope_vN`) | `(GameRulesConfig config)` | `ICommand` (`RegisterGameRulesCommand`) | `RegisterIoCDependencyGameRules` |
 | `"Game.Rules.RegisterNamed"` | 2B (`GameBaseScope_vN`) | `(string ruleName, string rulesJson)` | `ICommand` | `RegisterIoCDependencyGameRules` |
 | `"Game.Rules.<name>"` | 2B (`GameBaseScope_vN`) | — | `ICommand` (`RegisterGameRulesCommand`) | Через `"Game.Rules.RegisterNamed"` |
@@ -404,12 +419,26 @@ flowchart TD
 
 7. **`SpaceBattle/SpaceBattle.Lib/Rules/RegisterIoCDependencyGameRules.cs`** (`Create`, infra `Register`, `: ICommand`)
    - Метод `public void Execute()`:
-     - Создаёт `var sorter = new TopologicalOrderBuilder();` и `var parser = new GameRulesParserBuilder(sorter);`.
+     - Создаёт `var sorter = new TopologicalOrderBuilder();`, `var parser = new GameRulesParserBuilder(sorter);` и `var textBuilder = new GameRulesTextBuilder();`.
      - Регистрирует `"Game.Rules.Parse"` → `args => parser.Parse((string)args[0])`.
+     - Регистрирует `"Game.Rules.TextToJson"` → `args => args.Length > 1 ? textBuilder.Translate((string)args[0], (string)args[1]) : textBuilder.Translate((string)args[0])`.
+     - Регистрирует `"Game.Rules.ParseText"` → `args => parser.Parse(args.Length > 1 ? textBuilder.Translate((string)args[0], (string)args[1]) : textBuilder.Translate((string)args[0]))`.
      - Регистрирует `"Game.Rules.Apply"` → `args => new RegisterGameRulesCommand((GameRulesConfig)args[0])`.
      - Регистрирует `"Game.Rules.RegisterNamed"` → `args =>` возвращает `ICommand` (`DelegatingCommand`), который парсит `(string)args[1]` через `parser.Parse(...)` и регистрирует `"Game.Rules." + (string)args[0]` → `_ => new RegisterGameRulesCommand(parsed)` в текущем скоупе.
      - Регистрирует `"Game.Item.Create"` → `args => new Dictionary<string, object>((IDictionary<string, object>)args[0])`.
      - Регистрирует дефолтные (переопределяемые в L4) `"Game.Entity.Template.Resolve"` → `_ => new Dictionary<string, object>()`, `"Game.Victory.TargetType"` → `_ => "Ship"`, `"Commands.InTransaction"` → `args => (ICommand)args[0]` и `"Game.State.Reindex"` → `_ => Ioc.Resolve<ICommand>("Commands.Empty")`.
+
+7a. **`SpaceBattle/SpaceBattle.Lib/Rules/GameRulesTextBuilder.cs`** (`Create`, infra `Builder`, 0 `switch`, `D-022`)
+   - `public sealed class GameRulesTextBuilder`
+   - Метод `public string Translate(string rulesText, string version = "1.0.0")`:
+     - Проверяет `ArgumentException.ThrowIfNullOrWhiteSpace(rulesText)` и `ArgumentException.ThrowIfNullOrWhiteSpace(version)`.
+     - Разбивает строки по `'\n'`, игнорирует пустые/пробельные строки; каждую непустую строку разбирает строго через 4 `if/else if` (0 `switch`):
+       1. `В игре есть <E1>, <E2>, ...` → регистрирует ключи в словаре шаблонов (`templates`).
+       2. `<Entity> может <A1>, <A2>, ...` → проверяет наличие `<Entity>` в `templates` (`ArgumentException` при отсутствии), объединяет уникальные действия сущности в порядке объявления (для последующей записи `"AllowedActions"` после цикла), добавляет отсутствующие действия в `actions` с дефолтным шагом `[NormalizeStep(actionName)]`.
+       3. `<Action> включает <S1>, <S2>, ...` → задаёт `steps` действия (через `NormalizeStep`: имена с `.` без изменений, иначе `"Commands." + name`); при повторном `включает` для того же действия выбрасывает `ArgumentException`.
+       4. `<StepA> до <StepB>` → буферизует ограничение и после завершения цикла строк добавляет `"<NormA> before <NormB>"` в `order` каждого действия, содержащего оба шага (`ArgumentException`, если ни одно действие не содержит оба шага).
+     - На любой неизвестной строке или пустом элементе списка после `,` выбрасывает `ArgumentException`.
+     - Возвращает `JsonSerializer.Serialize(...)` в канонической схеме `game-rules.json` (`version`, `templates`, `entities: []`, `actions`).
 
 ---
 
@@ -523,6 +552,7 @@ flowchart TD
 
 - `SpaceBattle/SpaceBattle.Tests/RulesTests/TopologicalOrderBuilderTests.cs` (`Create`)
 - `SpaceBattle/SpaceBattle.Tests/RulesTests/GameRulesParserBuilderTests.cs` (`Create`)
+- `SpaceBattle/SpaceBattle.Tests/RulesTests/GameRulesTextBuilderTests.cs` (`Create`, `D-022`)
 - `SpaceBattle/SpaceBattle.Tests/RulesTests/RegisterGameRulesTests.cs` (`Create`)
 - `SpaceBattle/SpaceBattle.Tests/ScopesTests/ScopeParentHolderAndProxyTests.cs` (`Create`)
 - `SpaceBattle/SpaceBattle.Tests/ScopesTests/PluginLoaderAndHotReloadTests.cs` (`Create` — с локальным Roslyn-хелпером компиляции временных плагинов `.dll` в `Path.Combine(Path.GetTempPath(), ...)` и гарантированной очисткой в `Dispose()`)
@@ -561,6 +591,17 @@ flowchart TD
 | Битые `actions`: пустое имя; тело не объект; нет `steps` / не массив / пустой `steps`; нестроковый/пустой/дублирующийся шаг; `order` не массив / нестроковый элемент | Все ветки валидации действий → `ArgumentException` |
 | Кросс-экшн цикл (`A` содержит `"Macro.B"`, `B` содержит `"Macro.A"`) и самовызов (`A` содержит `"Macro.A"`) | Ветки построения кросс-экшн графа (`Macro.`-шаг к известному vs внешнему действию) → `InvalidOperationException` |
 | Null-проверки конструкторов `GameRuleEntity`, `GameRuleAction`, `GameRulesConfig`, `GameRulesParserBuilder` | 100% покрытие guard-веток |
+
+#### B1. Транслятор текстовых правил (`GameRulesTextBuilderTests`, `D-022`)
+
+| Тест-кейс | Покрываемые ветки / инварианты |
+| :--- | :--- |
+| Полный пример с доски (4 конструкции + пустая строка + `Macro.Sub`/шаг с точкой + `Game.Rules.TextToJson` и `Game.Rules.ParseText` с явной и дефолтной `version`) | Happy path трансляции, сохранение `"AllowedActions"` в `templates`, дефолтное атомарное действие из `может`, нормализация шагов с/без `.`, сквозной парсинг в `GameRulesConfig` |
+| Несколько строк `может` для одной сущности, дубликаты действий в `может` и ограничение `до` до строки `включает` | Объединение `AllowedActions` без дубликатов и порядок-независимое сопоставление `до` |
+| Повторный `включает` для того же действия | Ветка `existing.HasExplicitSteps` → `ArgumentException` |
+| Порядок `до` для несуществующей пары шагов | Ветка `matched == 0` → `ArgumentException` |
+| Неизвестная сущность в `может` и пустая строка/элемент в списке через запятую | Ветки `!templates.ContainsKey` и пустых токенов → `ArgumentException` |
+| Неизвестный формат строки, а также `null`/пробельный `rulesText` и `version` | Все guard-ветки `GameRulesTextBuilder` → `ArgumentException` |
 
 #### C. Применение правил и мульти-правила (`RegisterGameRulesTests`)
 
