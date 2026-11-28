@@ -30,4 +30,20 @@ public class SendCommandTests
 
         Assert.Throws<InvalidOperationException>(() => sendCommand.Execute());
     }
+
+    [Fact]
+    public void Constructor_NullCommand_ThrowsArgumentNullException()
+    {
+        var receiver = Substitute.For<ICommandReceiver>();
+
+        Assert.Throws<ArgumentNullException>(() => new SendCommand(null!, receiver));
+    }
+
+    [Fact]
+    public void Constructor_NullReceiver_ThrowsArgumentNullException()
+    {
+        var command = Substitute.For<ICommand>();
+
+        Assert.Throws<ArgumentNullException>(() => new SendCommand(command, null!));
+    }
 }

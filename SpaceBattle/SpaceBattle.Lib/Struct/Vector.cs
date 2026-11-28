@@ -1,59 +1,97 @@
 using System;
-using System.Linq;
 
 namespace SpaceBattle.Lib
 {
-    public class Vector
+    public sealed class Vector : IEquatable<Vector>
     {
         private readonly int[] _coordinates;
 
         public Vector(params int[] coordinates)
+            : this(coordinates, true)
         {
-            _coordinates = coordinates ?? Array.Empty<int>();
         }
+
+        private Vector(int[] coordinates, bool clone)
+        {
+            if (coordinates is null || coordinates.Length == 0)
+            {
+                _coordinates = Array.Empty<int>();
+                return;
+            }
+
+            _coordinates = clone ? (int[])coordinates.Clone() : coordinates;
+        }
+
+        public int Dimension => _coordinates.Length;
+
+        public int this[int index] => _coordinates[index];
 
         public static Vector operator +(Vector a, Vector b)
         {
+            ArgumentNullException.ThrowIfNull(a);
+            ArgumentNullException.ThrowIfNull(b);
+
             if (a._coordinates.Length != b._coordinates.Length)
             {
                 throw new ArgumentException();
             }
 
-            var result = a._coordinates.Zip(b._coordinates, (x, y) => x + y).ToArray();
+            var result = new int[a._coordinates.Length];
+            for (var i = 0; i < result.Length; i++)
+            {
+                result[i] = a._coordinates[i] + b._coordinates[i];
+            }
 
-            return new Vector(result);
+            return new Vector(result, false);
+        }
+
+        public bool Equals(Vector? other)
+        {
+            if (other is null)
+            {
+                return false;
+            }
+
+            if (_coordinates.Length != other._coordinates.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < _coordinates.Length; i++)
+            {
+                if (_coordinates[i] != other._coordinates[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public override bool Equals(object? obj)
         {
-            if (obj is Vector other)
-            {
-                return _coordinates.SequenceEqual(other._coordinates);
-            }
-            return false;
+            return Equals(obj as Vector);
         }
 
-        public override int GetHashCode() =>
-            _coordinates.Aggregate(17, (hash, coordinate) => unchecked(hash * 31 + coordinate.GetHashCode()));
-
-        public static bool operator ==(Vector a, Vector b) =>
-            a is null ? b is null : a.Equals(b);
-
-        public static bool operator !=(Vector a, Vector b)
+        public override int GetHashCode()
         {
-            return !(a == b);
+            var hash = 17;
+            for (var i = 0; i < _coordinates.Length; i++)
+            {
+                hash = unchecked(hash * 31 + _coordinates[i]);
+            }
+
+            return hash;
         }
 
-        public int this[int index]
+        public static bool operator ==(Vector? left, Vector? right)
         {
-            get
-            {
-                if (index < 0 || index >= _coordinates.Length)
-                {
-                    throw new IndexOutOfRangeException();
-                }
-                return _coordinates[index];
-            }
+            return ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        }
+
+        public static bool operator !=(Vector? left, Vector? right)
+        {
+            return !(left == right);
         }
     }
 }
