@@ -370,9 +370,21 @@ def check_ocp_git_warnings(root: Path) -> list[str]:
     return warnings
 
 
+def iter_cs_files(root: Path) -> list[Path]:
+    import os
+    pruned = {".dev", ".git", "контекст", "bin", "obj"}
+    matches: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in pruned)
+        for name in filenames:
+            if name.endswith(".cs"):
+                matches.append(Path(dirpath) / name)
+    return sorted(matches)
+
+
 def run_check_all(root: Path) -> int:
     hard_issues: list[str] = []
-    for cs in sorted(root.rglob("*.cs")):
+    for cs in iter_cs_files(root):
         hard_issues.extend(lint_cs_file(cs, root))
     ocp_warnings = check_ocp_git_warnings(root)
 
