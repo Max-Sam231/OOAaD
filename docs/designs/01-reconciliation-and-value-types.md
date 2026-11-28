@@ -1,7 +1,7 @@
 # Spec 01: Сверка канонического репозитория, иммутабельные `Angle`/`Vector` и `[Dependency]` для `Velocity`
 
 > **Статус:** Zero-Decision спецификация (**Day 0 Gate** — разблокирует параллельные треки `02`, `03`, `04`)  
-> **Связанные решения:** [`D-010`](../DECISIONS.md), [`D-017`](../DECISIONS.md), [`D-018`](../DECISIONS.md), [`D-021`](../DECISIONS.md) (сохраняет `origin/*` `D-001..D-009` без изменений по `INV-9`)  
+> **Связанные решения:** [`D-010`](../DECISIONS.md), [`D-017`](../DECISIONS.md), [`D-018`](../DECISIONS.md) (сохраняет `origin/*` `D-001..D-009` без изменений по `INV-9`)  
 > **Зависимости:** нет (корневой узел DAG из [`docs/ROADMAP.md`](../ROADMAP.md))  
 > **Инварианты:** `INV-1`, `INV-2`, `INV-3`, `INV-5`, `INV-6`, `INV-8`, `INV-9`
 
@@ -26,7 +26,7 @@
 3. Сделать `Vector` иммутабельным `sealed class` с защитным клонированием координат и циклами `for` (0 LINQ), сохранив совместимость с `MoveCommand.cs` (`??`) и `100%/100%` покрытие.
 4. Добавить null-проверки в конструктор `SendCommand` (без изменения `Execute()`) и зафиксировать переиспользование существующего `CommandInjectableCommand` + `StopLongRunningOperationCommand` как паттерна GoF `Bridge` ($O(1)$ `Stop`).
 5. Добавить `VelocityFromAngleAndSpeedStrategy` с `[assembly: Dependency(typeof(IMovingObject), "Velocity", ...)]` и согласовать 2 существующих теста `IMovingObject` (`RegisterIoCDependencyAdapterTests`, `InTransactionCommandTests`).
-6. Зафиксировать на Day 0 общие тонкие контракты между параллельными треками B (`Spec 03`) и C (`Spec 04`) без пересечения файлов (`design-3`): расширенный `CommandDescription` (`GameId`, `PlayerId`, `Step`, nullable `Args?` с `WhenWritingNull`) и интерфейсы `MessageRoutingStatus`, `IGameEndpointRoute`, `IGameRouter`, `IGameReceiverRegistry`.
+6. Зафиксировать на Day 0 общие тонкие контракты между параллельными треками B (`Spec 03`) и C (`Spec 04`) без пересечения файлов (`design-3`): расширенный `CommandDescription` (`GameId`, `PlayerId`, `Step`, nullable `Args?` с `WhenWritingNull`) и интерфейсы `MessageRoutingStatus`, `IGameEndpointRoute`, `IGameRouter`, `IGameReceiverTable`.
 
 ### Границы (Non-Goals)
 - Не переписывать `Game.cs`, `ServerThread`, `RoundRobinGameScheduler`, `GameTransactions`, `GameSnapshotSerializer`, `TransferableGame` (это области Spec `02`–`04`).
@@ -111,7 +111,7 @@
   - `void Register(string gameId, IGameEndpointRoute route);`
   - `bool Unregister(string gameId);`
   - `bool TryGetRoute(string gameId, [MaybeNullWhen(false)] out IGameEndpointRoute route);`
-- **`SpaceBattle.Lib.IGameReceiverRegistry`** (`SpaceBattle/SpaceBattle.Lib/Endpoint/IGameReceiverRegistry.cs`, `Create`, однопоточная таблица конкретного `ServerThread` поверх `IGameCommandSending`):
+- **`SpaceBattle.Lib.IGameReceiverTable`** (`SpaceBattle/SpaceBattle.Lib/Endpoint/IGameReceiverTable.cs`, `Create`, однопоточная таблица конкретного `ServerThread` поверх `IGameCommandSending`):
   - `void Set(string gameId, IGameCommandSending target);`
   - `bool RemoveIfSame(string gameId, IGameCommandSending expected);`
   - `bool TryGet(string gameId, [MaybeNullWhen(false)] out IGameCommandSending target);`
@@ -152,7 +152,7 @@
 | **Create** | `SpaceBattle/SpaceBattle.Lib/Endpoint/MessageRoutingStatus.cs` | `enum MessageRoutingStatus { Accepted, GameNotFound, QueueFull }`. |
 | **Create** | `SpaceBattle/SpaceBattle.Lib/Endpoint/IGameEndpointRoute.cs` | `bool TryRoute(CommandDescription message);`. |
 | **Create** | `SpaceBattle/SpaceBattle.Lib/Endpoint/IGameRouter.cs` | `Route`, `Register`, `Unregister`, `TryGetRoute` (0 `-able`). |
-| **Create** | `SpaceBattle/SpaceBattle.Lib/Endpoint/IGameReceiverRegistry.cs` | `Set`, `RemoveIfSame`, `TryGet`, `GameIds` над `IGameCommandSending` (0 `-able`). |
+| **Create** | `SpaceBattle/SpaceBattle.Lib/Endpoint/IGameReceiverTable.cs` | `Set`, `RemoveIfSame`, `TryGet`, `GameIds` над `IGameCommandSending` (0 `-able`). |
 | **Modify** | `SpaceBattle/SpaceBattle.Lib/Commands/SendCommand.cs` | Добавить `ArgumentNullException` проверки для `command` и `receiver` в конструкторе (`Execute()` не трогать). |
 | **Create** | `SpaceBattle/SpaceBattle.Lib/Adapters/VelocityFromAngleAndSpeedStrategy.cs` | `[assembly: Dependency(typeof(IMovingObject), "Velocity", typeof(VelocityFromAngleAndSpeedStrategy), "Resolve")]` + `public static class VelocityFromAngleAndSpeedStrategy` с `public static object Resolve(object[] args)`. |
 | **Modify** | `SpaceBattle/SpaceBattle.Tests/StructsTests/AngleTests.cs` | Добавить тесты на независимость `Denominator` у двух экземпляров, `ArgumentException` при сложении разных знаменателей, неравенство разных знаменателей, `default(Angle)` (`Numerator`, `Denominator`, `double`, `+`, `ToString`). |
@@ -171,7 +171,7 @@
 | :--- | :--- |
 | **`AngleTests`** | Существующие 12 кейсов + (1) `TwoAngles_DifferentDenominators_DoNotMutateEachOther` (проверка отсутствия гонки `INV-8`); (2) `Add_DifferentDenominators_ThrowsArgumentException` (`a.Denominator != b.Denominator` → `true`); (3) `Equals_DifferentDenominators_ReturnsFalse` (`Numerator ==` true, `Denominator ==` false); (4) `DefaultAngle_HasDefaultDenominatorAndZeroNumerator` (покрывает `_denominator == 0` → `true` и `false` на обычном `Angle`). |
 | **`VectorTests`** | Существующие 20 кейсов (включая `Constructor_NullArray_CreatesEmptyVector` с `new Vector(null!)`, покрывающий ветку `coordinates == null`, и `Indexer_NegativeIndex`/`Indexer_IndexTooLarge`) + (1) `Constructor_MutatingInputArray_DoesNotAffectVector` (защитное клонирование, `Length > 0`); (2) `Constructor_EmptyArray_HasZeroDimension` (`Length == 0`); (3) `Add_NullOperand_ThrowsArgumentNullException`; (4) `Equals_DifferentDimensions_ReturnsFalse` (`Length != other.Length` → `true`); (5) `EqualsObject_VectorAndNonVector_ReturnsExpected` (`obj as Vector` → `true` и `false`). |
-| **`SnapshotTests`** | Существующие кейсы + (1) `Codecs_RoundTripAngleWithCustomDenominator_PreservesDenominator` (`new Angle(3, 16)` → JSON `[3, 16]` → `Angle(3, 16)` без влияния на `new Angle(1, 8)`); (2) `CommandDescription_ExtendedFields_RoundTripAndOmitNullArgs` (покрывает 100% геттеров/сеттеров `GameId`, `PlayerId`, `Step`, `Args == null` → ключ `"args"` опущен в JSON, и `Args != null` → полный round-trip; интерфейсы `IGameRouter`/`IGameReceiverRegistry`/`IGameEndpointRoute` и `enum MessageRoutingStatus` не содержат исполняемых веток Coverlet). |
+| **`SnapshotTests`** | Существующие кейсы + (1) `Codecs_RoundTripAngleWithCustomDenominator_PreservesDenominator` (`new Angle(3, 16)` → JSON `[3, 16]` → `Angle(3, 16)` без влияния на `new Angle(1, 8)`); (2) `CommandDescription_ExtendedFields_RoundTripAndOmitNullArgs` (покрывает 100% геттеров/сеттеров `GameId`, `PlayerId`, `Step`, `Args == null` → ключ `"args"` опущен в JSON, и `Args != null` → полный round-trip; интерфейсы `IGameRouter`/`IGameReceiverTable`/`IGameEndpointRoute` и `enum MessageRoutingStatus` не содержат исполняемых веток Coverlet). |
 | **`SendCommandTests`** | Существующие 2 кейса + `Constructor_NullCommand_ThrowsArgumentNullException` + `Constructor_NullReceiver_ThrowsArgumentNullException`. |
 | **`VelocityFromAngleAndSpeedStrategyTests`** | (1) `[Theory]` для углов `0/8`, `2/8` ($\pi/2$), `4/8` ($\pi$), `6/8` ($3\pi/2$), `1/8` ($\pi/4$, проверка округления `MidpointRounding.AwayFromZero`) и разных скоростей (`Speed = 2, 3, 5`); (2) `Resolve_MissingSpeedOrAngle_ThrowsKeyNotFoundException`; (3) Integration: `RegisterIoCDependencyAdapterFactory` + `RegisterIoCDependencyAdapter(typeof(IMovingObject))` + `MoveCommand` двигает корабль по `(Angle, Speed)` и при повороте `RotateCommand` на лету пересчитывает `Velocity` без накопления ошибки. |
 | **`RegisterIoCDependencyAdapterTests` & `InTransactionCommandTests`** | Обновлённые интеграционные кейсы с `(Angle, Speed)` подтверждают работу `MoveCommand` через compile-once `IAdapterFactory` и откат `InTransactionCommand`. |

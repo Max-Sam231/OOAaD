@@ -2,8 +2,8 @@
 
 * **Статус:** Zero-Decision Delta Spec (поверх сведённого `origin/*` после Spec `01`)
 * **Трек / Владелец:** Track C — Teammate 3 (Максим)
-* **Связанные решения (`docs/DECISIONS.md`):** `D-010`, `D-014`, `D-015`, `D-017`, `D-018`, `D-019`, `D-020`, `D-021` *(расширяет `origin/*` `D-004`, `D-005`, `D-006`)*
-* **Зависимости (DAG):** `01-reconciliation-and-value-types.md` (`CommandDescription`, `IGameRouter`, `IGameReceiverRegistry`); стыкуется по контрактам с `02-rules-and-scope-hot-reload.md` (`ProxyScope`, `Game.Rules.{Parse,Apply,Version,Config}`) и `03-server-endpoint-routing-and-step.md` (`DeliverMessageCommand`, `Server.Ingress.Paused`, `Server.Thread.TryEnqueue`, `ServerBootstrap`).
+* **Связанные решения (`docs/DECISIONS.md`):** `D-010`, `D-014`, `D-015`, `D-017`, `D-018`, `D-019`, `D-020` *(расширяет `origin/*` `D-004`, `D-005`, `D-006`)*
+* **Зависимости (DAG):** `01-reconciliation-and-value-types.md` (`CommandDescription`, `IGameRouter`, `IGameReceiverTable`); стыкуется по контрактам с `02-rules-and-scope-hot-reload.md` (`ProxyScope`, `Game.Rules.{Parse,Apply,Version,Config}`) и `03-server-endpoint-routing-and-step.md` (`DeliverMessageCommand`, `Server.Ingress.Paused`, `Server.Thread.TryEnqueue`, `ServerBootstrap`).
 * **Целевое решение:** `SpaceBattle/SpaceBattle.sln` (`SpaceBattle.Lib`, `SpaceBattle.Server`, `SpaceBattle.Tests`)
 * **Источники требований:** `ПЗ_3:249–273, 409–736`, `ПЗ_4:469–678`, `ПЗ_5 00:00–01:36, 06:40–10:15`, `ПЗ_6 50:00–64:20`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`.
 
@@ -88,7 +88,7 @@
   2. Цикл `while (_quantumState.CanContinue())`:
      * Если `!_queue.TryPeek(out var head)`:
        * `_quantumState.MarkIdle()`.
-       * Если `_quarantineElapsed && !_retired`: ставит `_retired = true`, вызывает `_onRetired()` (удаляет себя из `IGameReceiverRegistry` через `RemoveIfSame`, вызывает `_threadState.UnregisterActiveProxy()`).
+       * Если `_quarantineElapsed && !_retired`: ставит `_retired = true`, вызывает `_onRetired()` (удаляет себя из `IGameReceiverTable` через `RemoveIfSame`, вызывает `_threadState.UnregisterActiveProxy()`).
        * Выход из кванта.
      * Внутри `try`: `var accepted = _target.TryReceive(head);`.
      * Если `TryReceive` бросил исключение: `_queue.TryDequeue(out _);` (извлечение poison-сообщения), маршрутизация в `Ioc.Resolve<ICommand>("Exception.Handle", head, exception).Execute()`, переход к следующей итерации.
